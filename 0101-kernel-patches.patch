@@ -1,7 +1,7 @@
 From 08fef4d71e2a206c8b9e1b5a89ded5fae1cf3335 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Thu, 21 Aug 2025 14:57:19 +0800
-Subject: [PATCH 1/3] Additional hardening configs
+Subject: [PATCH 1/5] Additional hardening configs
 
 ---
  Documentation/admin-guide/sysctl/kernel.rst |  2 ++
@@ -294,7 +294,7 @@ index 1dc1f7b3bfb8..0bbbfa425045 100644
 From ae37c01fe1c1f54042c956b8e6d459f6a3944a04 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Thu, 21 Aug 2025 14:57:41 +0800
-Subject: [PATCH 2/3] ntfs3_for_6.17
+Subject: [PATCH 2/5] ntfs3_for_6.17
 
 ---
  fs/ntfs3/dir.c     |  3 +--
@@ -774,7 +774,7 @@ index e0055dcf8fe3..e519e21596a7 100644
 From f0c2ebc1a80e4f87d12669e226e7b52b17a4cc92 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Thu, 21 Aug 2025 15:01:12 +0800
-Subject: [PATCH 3/3] f2fs-for-6.17-rc1
+Subject: [PATCH 3/5] f2fs-for-6.17-rc1
 
 ---
  Documentation/ABI/testing/sysfs-fs-f2fs |   22 +
@@ -7174,6 +7174,580 @@ index 56fad33043d5..8d9127a0fdb3 100644
  {
  	WARN_ON_ONCE(1);
  	return ERR_PTR(-EINVAL);
+-- 
+2.50.1
+
+
+From 4bfc24f93e0015305254116d1b4f35ff17cfde90 Mon Sep 17 00:00:00 2001
+From: Albert I <kras@raphielgang.org>
+Date: Fri, 22 Aug 2025 21:18:32 +0800
+Subject: [PATCH 4/5] Fixes for "broken" backports
+
+---
+ drivers/mfd/axp20x.c           |  5 ++--
+ drivers/net/usb/asix_devices.c |  2 +-
+ fs/btrfs/zoned.c               | 55 +++++++++++++++++++++++++++++-----
+ 3 files changed, 50 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/mfd/axp20x.c b/drivers/mfd/axp20x.c
+index 25c639b348cd..c5f0ebae327f 100644
+--- a/drivers/mfd/axp20x.c
++++ b/drivers/mfd/axp20x.c
+@@ -1231,9 +1231,8 @@ static const struct mfd_cell axp15060_cells[] = {
+ 
+ /* For boards that don't have IRQ line connected to SOC. */
+ static const struct mfd_cell axp_regulator_only_cells[] = {
+-	{
+-		.name		= "axp20x-regulator",
+-	},
++	/* PMIC without IRQ line may be secondary PMIC */
++	MFD_CELL_BASIC("axp20x-regulator", NULL, NULL, 0, 1),
+ };
+ 
+ static int axp20x_power_off(struct sys_off_data *data)
+diff --git a/drivers/net/usb/asix_devices.c b/drivers/net/usb/asix_devices.c
+index d9f5942ccc44..792ddda1ad49 100644
+--- a/drivers/net/usb/asix_devices.c
++++ b/drivers/net/usb/asix_devices.c
+@@ -676,7 +676,7 @@ static int ax88772_init_mdio(struct usbnet *dev)
+ 	priv->mdio->read = &asix_mdio_bus_read;
+ 	priv->mdio->write = &asix_mdio_bus_write;
+ 	priv->mdio->name = "Asix MDIO Bus";
+-	priv->mdio->phy_mask = ~(BIT(priv->phy_addr) | BIT(AX_EMBD_PHY_ADDR));
++	priv->mdio->phy_mask = ~(BIT(priv->phy_addr & 0x1f) | BIT(AX_EMBD_PHY_ADDR));
+ 	/* mii bus name is usb-<usb bus number>-<usb device number> */
+ 	snprintf(priv->mdio->id, MII_BUS_ID_SIZE, "usb-%03d:%03d",
+ 		 dev->udev->bus->busnum, dev->udev->devnum);
+diff --git a/fs/btrfs/zoned.c b/fs/btrfs/zoned.c
+index 5439d8374716..d392fca9369b 100644
+--- a/fs/btrfs/zoned.c
++++ b/fs/btrfs/zoned.c
+@@ -18,6 +18,7 @@
+ #include "accessors.h"
+ #include "bio.h"
+ #include "transaction.h"
++#include "sysfs.h"
+ 
+ /* Maximum number of zones to report per blkdev_report_zones() call */
+ #define BTRFS_REPORT_NR_ZONES   4096
+@@ -2505,12 +2506,12 @@ void btrfs_clear_data_reloc_bg(struct btrfs_block_group *bg)
+ void btrfs_zoned_reserve_data_reloc_bg(struct btrfs_fs_info *fs_info)
+ {
+ 	struct btrfs_space_info *data_sinfo = fs_info->data_sinfo;
+-	struct btrfs_space_info *space_info = data_sinfo->sub_group[0];
++	struct btrfs_space_info *space_info = data_sinfo;
+ 	struct btrfs_trans_handle *trans;
+ 	struct btrfs_block_group *bg;
+ 	struct list_head *bg_list;
+ 	u64 alloc_flags;
+-	bool initial = false;
++	bool first = true;
+ 	bool did_chunk_alloc = false;
+ 	int index;
+ 	int ret;
+@@ -2524,21 +2525,52 @@ void btrfs_zoned_reserve_data_reloc_bg(struct btrfs_fs_info *fs_info)
+ 	if (sb_rdonly(fs_info->sb))
+ 		return;
+ 
+-	ASSERT(space_info->subgroup_id == BTRFS_SUB_GROUP_DATA_RELOC);
+ 	alloc_flags = btrfs_get_alloc_profile(fs_info, space_info->flags);
+ 	index = btrfs_bg_flags_to_raid_index(alloc_flags);
+ 
+-	bg_list = &data_sinfo->block_groups[index];
++	/* Scan the data space_info to find empty block groups. Take the second one. */
+ again:
++	bg_list = &space_info->block_groups[index];
+ 	list_for_each_entry(bg, bg_list, list) {
+-		if (bg->used > 0)
++		if (bg->alloc_offset != 0)
+ 			continue;
+ 
+-		if (!initial) {
+-			initial = true;
++		if (first) {
++			first = false;
+ 			continue;
+ 		}
+ 
++		if (space_info == data_sinfo) {
++			/* Migrate the block group to the data relocation space_info. */
++			struct btrfs_space_info *reloc_sinfo = data_sinfo->sub_group[0];
++			int factor;
++
++			ASSERT(reloc_sinfo->subgroup_id == BTRFS_SUB_GROUP_DATA_RELOC);
++			factor = btrfs_bg_type_to_factor(bg->flags);
++
++			down_write(&space_info->groups_sem);
++			list_del_init(&bg->list);
++			/* We can assume this as we choose the second empty one. */
++			ASSERT(!list_empty(&space_info->block_groups[index]));
++			up_write(&space_info->groups_sem);
++
++			spin_lock(&space_info->lock);
++			space_info->total_bytes -= bg->length;
++			space_info->disk_total -= bg->length * factor;
++			/* There is no allocation ever happened. */
++			ASSERT(bg->used == 0);
++			ASSERT(bg->zone_unusable == 0);
++			/* No super block in a block group on the zoned setup. */
++			ASSERT(bg->bytes_super == 0);
++			spin_unlock(&space_info->lock);
++
++			bg->space_info = reloc_sinfo;
++			if (reloc_sinfo->block_group_kobjs[index] == NULL)
++				btrfs_sysfs_add_block_group_type(bg);
++
++			btrfs_add_bg_to_space_info(fs_info, bg);
++		}
++
+ 		fs_info->data_reloc_bg = bg->start;
+ 		set_bit(BLOCK_GROUP_FLAG_ZONED_DATA_RELOC, &bg->runtime_flags);
+ 		btrfs_zone_activate(bg);
+@@ -2553,11 +2585,18 @@ void btrfs_zoned_reserve_data_reloc_bg(struct btrfs_fs_info *fs_info)
+ 	if (IS_ERR(trans))
+ 		return;
+ 
++	/* Allocate new BG in the data relocation space_info. */
++	space_info = data_sinfo->sub_group[0];
++	ASSERT(space_info->subgroup_id == BTRFS_SUB_GROUP_DATA_RELOC);
+ 	ret = btrfs_chunk_alloc(trans, space_info, alloc_flags, CHUNK_ALLOC_FORCE);
+ 	btrfs_end_transaction(trans);
+ 	if (ret == 1) {
++		/*
++		 * We allocated a new block group in the data relocation space_info. We
++		 * can take that one.
++		 */
++		first = false;
+ 		did_chunk_alloc = true;
+-		bg_list = &space_info->block_groups[index];
+ 		goto again;
+ 	}
+ }
+-- 
+2.50.1
+
+
+From a7f305b86939ad2207a719a4c946f6591272a87f Mon Sep 17 00:00:00 2001
+From: Albert I <kras@raphielgang.org>
+Date: Fri, 22 Aug 2025 21:19:10 +0800
+Subject: [PATCH 5/5] Revert problematic patches
+
+---
+ drivers/iommu/intel/iommu.c | 19 +----------
+ drivers/iommu/intel/iommu.h |  3 --
+ fs/ext4/ext4.h              |  2 +-
+ fs/ext4/ialloc.c            |  3 +-
+ fs/ext4/inline.c            | 21 ++----------
+ fs/ext4/inode.c             | 29 ++++------------
+ fs/ext4/mballoc-test.c      |  9 -----
+ fs/ext4/mballoc.c           | 67 ++++++++++++++++++++-----------------
+ fs/ext4/page-io.c           | 16 ++++-----
+ 9 files changed, 57 insertions(+), 112 deletions(-)
+
+diff --git a/drivers/iommu/intel/iommu.c b/drivers/iommu/intel/iommu.c
+index ab4cd742f095..c0be0b64e4c7 100644
+--- a/drivers/iommu/intel/iommu.c
++++ b/drivers/iommu/intel/iommu.c
+@@ -1795,18 +1795,6 @@ static int domain_setup_first_level(struct intel_iommu *iommu,
+ 					  (pgd_t *)pgd, flags, old);
+ }
+ 
+-static bool domain_need_iotlb_sync_map(struct dmar_domain *domain,
+-				       struct intel_iommu *iommu)
+-{
+-	if (cap_caching_mode(iommu->cap) && !domain->use_first_level)
+-		return true;
+-
+-	if (rwbf_quirk || cap_rwbf(iommu->cap))
+-		return true;
+-
+-	return false;
+-}
+-
+ static int dmar_domain_attach_device(struct dmar_domain *domain,
+ 				     struct device *dev)
+ {
+@@ -1844,8 +1832,6 @@ static int dmar_domain_attach_device(struct dmar_domain *domain,
+ 	if (ret)
+ 		goto out_block_translation;
+ 
+-	domain->iotlb_sync_map |= domain_need_iotlb_sync_map(domain, iommu);
+-
+ 	return 0;
+ 
+ out_block_translation:
+@@ -3967,10 +3953,7 @@ static bool risky_device(struct pci_dev *pdev)
+ static int intel_iommu_iotlb_sync_map(struct iommu_domain *domain,
+ 				      unsigned long iova, size_t size)
+ {
+-	struct dmar_domain *dmar_domain = to_dmar_domain(domain);
+-
+-	if (dmar_domain->iotlb_sync_map)
+-		cache_tag_flush_range_np(dmar_domain, iova, iova + size - 1);
++	cache_tag_flush_range_np(to_dmar_domain(domain), iova, iova + size - 1);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/iommu/intel/iommu.h b/drivers/iommu/intel/iommu.h
+index 61f42802fe9e..2d1afab5eedc 100644
+--- a/drivers/iommu/intel/iommu.h
++++ b/drivers/iommu/intel/iommu.h
+@@ -614,9 +614,6 @@ struct dmar_domain {
+ 	u8 has_mappings:1;		/* Has mappings configured through
+ 					 * iommu_map() interface.
+ 					 */
+-	u8 iotlb_sync_map:1;		/* Need to flush IOTLB cache or write
+-					 * buffer when creating mappings.
+-					 */
+ 
+ 	spinlock_t lock;		/* Protect device tracking lists */
+ 	struct list_head devices;	/* all devices' list */
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index fe3366e98493..18373de980f2 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -3020,7 +3020,7 @@ int ext4_walk_page_buffers(handle_t *handle,
+ 				     struct buffer_head *bh));
+ int do_journal_get_write_access(handle_t *handle, struct inode *inode,
+ 				struct buffer_head *bh);
+-void ext4_set_inode_mapping_order(struct inode *inode);
++bool ext4_should_enable_large_folio(struct inode *inode);
+ #define FALL_BACK_TO_NONDELALLOC 1
+ #define CONVERT_INLINE_DATA	 2
+ 
+diff --git a/fs/ext4/ialloc.c b/fs/ext4/ialloc.c
+index df4051613b29..79aa3df8d019 100644
+--- a/fs/ext4/ialloc.c
++++ b/fs/ext4/ialloc.c
+@@ -1335,7 +1335,8 @@ struct inode *__ext4_new_inode(struct mnt_idmap *idmap,
+ 		}
+ 	}
+ 
+-	ext4_set_inode_mapping_order(inode);
++	if (ext4_should_enable_large_folio(inode))
++		mapping_set_large_folios(inode->i_mapping);
+ 
+ 	ext4_update_inode_fsync_trans(handle, inode, 1);
+ 
+diff --git a/fs/ext4/inline.c b/fs/ext4/inline.c
+index 05313c8ffb9c..a1bbcdf40824 100644
+--- a/fs/ext4/inline.c
++++ b/fs/ext4/inline.c
+@@ -303,11 +303,7 @@ static int ext4_create_inline_data(handle_t *handle,
+ 	if (error)
+ 		goto out;
+ 
+-	if (!is.s.not_found) {
+-		EXT4_ERROR_INODE(inode, "unexpected inline data xattr");
+-		error = -EFSCORRUPTED;
+-		goto out;
+-	}
++	BUG_ON(!is.s.not_found);
+ 
+ 	error = ext4_xattr_ibody_set(handle, inode, &i, &is);
+ 	if (error) {
+@@ -358,11 +354,7 @@ static int ext4_update_inline_data(handle_t *handle, struct inode *inode,
+ 	if (error)
+ 		goto out;
+ 
+-	if (is.s.not_found) {
+-		EXT4_ERROR_INODE(inode, "missing inline data xattr");
+-		error = -EFSCORRUPTED;
+-		goto out;
+-	}
++	BUG_ON(is.s.not_found);
+ 
+ 	len -= EXT4_MIN_INLINE_DATA_SIZE;
+ 	value = kzalloc(len, GFP_NOFS);
+@@ -620,7 +612,6 @@ static int ext4_convert_inline_data_to_extent(struct address_space *mapping,
+ 	} else
+ 		ret = ext4_block_write_begin(handle, folio, from, to,
+ 					     ext4_get_block);
+-	clear_buffer_new(folio_buffers(folio));
+ 
+ 	if (!ret && ext4_should_journal_data(inode)) {
+ 		ret = ext4_walk_page_buffers(handle, inode,
+@@ -900,7 +891,6 @@ static int ext4_da_convert_inline_data_to_extent(struct address_space *mapping,
+ 		return ret;
+ 	}
+ 
+-	clear_buffer_new(folio_buffers(folio));
+ 	folio_mark_dirty(folio);
+ 	folio_mark_uptodate(folio);
+ 	ext4_clear_inode_state(inode, EXT4_STATE_MAY_INLINE_DATA);
+@@ -1913,12 +1903,7 @@ int ext4_inline_data_truncate(struct inode *inode, int *has_inline)
+ 			if ((err = ext4_xattr_ibody_find(inode, &i, &is)) != 0)
+ 				goto out_error;
+ 
+-			if (is.s.not_found) {
+-				EXT4_ERROR_INODE(inode,
+-						 "missing inline data xattr");
+-				err = -EFSCORRUPTED;
+-				goto out_error;
+-			}
++			BUG_ON(is.s.not_found);
+ 
+ 			value_len = le32_to_cpu(is.s.here->e_value_size);
+ 			value = kmalloc(value_len, GFP_NOFS);
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index 0f316632b8dd..be9a4cba35fd 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -1171,7 +1171,7 @@ int ext4_block_write_begin(handle_t *handle, struct folio *folio,
+ 			}
+ 			continue;
+ 		}
+-		if (WARN_ON_ONCE(buffer_new(bh)))
++		if (buffer_new(bh))
+ 			clear_buffer_new(bh);
+ 		if (!buffer_mapped(bh)) {
+ 			WARN_ON(bh->b_size != blocksize);
+@@ -1395,7 +1395,6 @@ static int write_end_fn(handle_t *handle, struct inode *inode,
+ 	ret = ext4_dirty_journalled_data(handle, bh);
+ 	clear_buffer_meta(bh);
+ 	clear_buffer_prio(bh);
+-	clear_buffer_new(bh);
+ 	return ret;
+ }
+ 
+@@ -5107,7 +5106,7 @@ static int check_igot_inode(struct inode *inode, ext4_iget_flags flags,
+ 	return -EFSCORRUPTED;
+ }
+ 
+-static bool ext4_should_enable_large_folio(struct inode *inode)
++bool ext4_should_enable_large_folio(struct inode *inode)
+ {
+ 	struct super_block *sb = inode->i_sb;
+ 
+@@ -5124,22 +5123,6 @@ static bool ext4_should_enable_large_folio(struct inode *inode)
+ 	return true;
+ }
+ 
+-/*
+- * Limit the maximum folio order to 2048 blocks to prevent overestimation
+- * of reserve handle credits during the folio writeback in environments
+- * where the PAGE_SIZE exceeds 4KB.
+- */
+-#define EXT4_MAX_PAGECACHE_ORDER(i)		\
+-		umin(MAX_PAGECACHE_ORDER, (11 + (i)->i_blkbits - PAGE_SHIFT))
+-void ext4_set_inode_mapping_order(struct inode *inode)
+-{
+-	if (!ext4_should_enable_large_folio(inode))
+-		return;
+-
+-	mapping_set_folio_order_range(inode->i_mapping, 0,
+-				      EXT4_MAX_PAGECACHE_ORDER(inode));
+-}
+-
+ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
+ 			  ext4_iget_flags flags, const char *function,
+ 			  unsigned int line)
+@@ -5457,8 +5440,8 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
+ 		ret = -EFSCORRUPTED;
+ 		goto bad_inode;
+ 	}
+-
+-	ext4_set_inode_mapping_order(inode);
++	if (ext4_should_enable_large_folio(inode))
++		mapping_set_large_folios(inode->i_mapping);
+ 
+ 	ret = check_igot_inode(inode, flags, function, line);
+ 	/*
+@@ -6156,7 +6139,7 @@ int ext4_meta_trans_blocks(struct inode *inode, int lblocks, int pextents)
+ 	int ret;
+ 
+ 	/*
+-	 * How many index and leaf blocks need to touch to map @lblocks
++	 * How many index and lead blocks need to touch to map @lblocks
+ 	 * logical blocks to @pextents physical extents?
+ 	 */
+ 	idxblocks = ext4_index_trans_blocks(inode, lblocks, pextents);
+@@ -6165,7 +6148,7 @@ int ext4_meta_trans_blocks(struct inode *inode, int lblocks, int pextents)
+ 	 * Now let's see how many group bitmaps and group descriptors need
+ 	 * to account
+ 	 */
+-	groups = idxblocks + pextents;
++	groups = idxblocks;
+ 	gdpblocks = groups;
+ 	if (groups > ngroups)
+ 		groups = ngroups;
+diff --git a/fs/ext4/mballoc-test.c b/fs/ext4/mballoc-test.c
+index f018bc8424c7..d634c12f1984 100644
+--- a/fs/ext4/mballoc-test.c
++++ b/fs/ext4/mballoc-test.c
+@@ -155,7 +155,6 @@ static struct super_block *mbt_ext4_alloc_super_block(void)
+ 	bgl_lock_init(sbi->s_blockgroup_lock);
+ 
+ 	sbi->s_es = &fsb->es;
+-	sbi->s_sb = sb;
+ 	sb->s_fs_info = sbi;
+ 
+ 	up_write(&sb->s_umount);
+@@ -803,10 +802,6 @@ static void test_mb_mark_used(struct kunit *test)
+ 	KUNIT_ASSERT_EQ(test, ret, 0);
+ 
+ 	grp->bb_free = EXT4_CLUSTERS_PER_GROUP(sb);
+-	grp->bb_largest_free_order = -1;
+-	grp->bb_avg_fragment_size_order = -1;
+-	INIT_LIST_HEAD(&grp->bb_largest_free_order_node);
+-	INIT_LIST_HEAD(&grp->bb_avg_fragment_size_node);
+ 	mbt_generate_test_ranges(sb, ranges, TEST_RANGE_COUNT);
+ 	for (i = 0; i < TEST_RANGE_COUNT; i++)
+ 		test_mb_mark_used_range(test, &e4b, ranges[i].start,
+@@ -880,10 +875,6 @@ static void test_mb_free_blocks(struct kunit *test)
+ 	ext4_unlock_group(sb, TEST_GOAL_GROUP);
+ 
+ 	grp->bb_free = 0;
+-	grp->bb_largest_free_order = -1;
+-	grp->bb_avg_fragment_size_order = -1;
+-	INIT_LIST_HEAD(&grp->bb_largest_free_order_node);
+-	INIT_LIST_HEAD(&grp->bb_avg_fragment_size_node);
+ 	memset(bitmap, 0xff, sb->s_blocksize);
+ 
+ 	mbt_generate_test_ranges(sb, ranges, TEST_RANGE_COUNT);
+diff --git a/fs/ext4/mballoc.c b/fs/ext4/mballoc.c
+index fb7093ea3023..1e98c5be4e0a 100644
+--- a/fs/ext4/mballoc.c
++++ b/fs/ext4/mballoc.c
+@@ -841,30 +841,30 @@ static void
+ mb_update_avg_fragment_size(struct super_block *sb, struct ext4_group_info *grp)
+ {
+ 	struct ext4_sb_info *sbi = EXT4_SB(sb);
+-	int new, old;
++	int new_order;
+ 
+-	if (!test_opt2(sb, MB_OPTIMIZE_SCAN))
++	if (!test_opt2(sb, MB_OPTIMIZE_SCAN) || grp->bb_fragments == 0)
+ 		return;
+ 
+-	old = grp->bb_avg_fragment_size_order;
+-	new = grp->bb_fragments == 0 ? -1 :
+-	      mb_avg_fragment_size_order(sb, grp->bb_free / grp->bb_fragments);
+-	if (new == old)
++	new_order = mb_avg_fragment_size_order(sb,
++					grp->bb_free / grp->bb_fragments);
++	if (new_order == grp->bb_avg_fragment_size_order)
+ 		return;
+ 
+-	if (old >= 0) {
+-		write_lock(&sbi->s_mb_avg_fragment_size_locks[old]);
++	if (grp->bb_avg_fragment_size_order != -1) {
++		write_lock(&sbi->s_mb_avg_fragment_size_locks[
++					grp->bb_avg_fragment_size_order]);
+ 		list_del(&grp->bb_avg_fragment_size_node);
+-		write_unlock(&sbi->s_mb_avg_fragment_size_locks[old]);
+-	}
+-
+-	grp->bb_avg_fragment_size_order = new;
+-	if (new >= 0) {
+-		write_lock(&sbi->s_mb_avg_fragment_size_locks[new]);
+-		list_add_tail(&grp->bb_avg_fragment_size_node,
+-				&sbi->s_mb_avg_fragment_size[new]);
+-		write_unlock(&sbi->s_mb_avg_fragment_size_locks[new]);
++		write_unlock(&sbi->s_mb_avg_fragment_size_locks[
++					grp->bb_avg_fragment_size_order]);
+ 	}
++	grp->bb_avg_fragment_size_order = new_order;
++	write_lock(&sbi->s_mb_avg_fragment_size_locks[
++					grp->bb_avg_fragment_size_order]);
++	list_add_tail(&grp->bb_avg_fragment_size_node,
++		&sbi->s_mb_avg_fragment_size[grp->bb_avg_fragment_size_order]);
++	write_unlock(&sbi->s_mb_avg_fragment_size_locks[
++					grp->bb_avg_fragment_size_order]);
+ }
+ 
+ /*
+@@ -1150,28 +1150,33 @@ static void
+ mb_set_largest_free_order(struct super_block *sb, struct ext4_group_info *grp)
+ {
+ 	struct ext4_sb_info *sbi = EXT4_SB(sb);
+-	int new, old = grp->bb_largest_free_order;
++	int i;
+ 
+-	for (new = MB_NUM_ORDERS(sb) - 1; new >= 0; new--)
+-		if (grp->bb_counters[new] > 0)
++	for (i = MB_NUM_ORDERS(sb) - 1; i >= 0; i--)
++		if (grp->bb_counters[i] > 0)
+ 			break;
+-
+ 	/* No need to move between order lists? */
+-	if (new == old)
++	if (!test_opt2(sb, MB_OPTIMIZE_SCAN) ||
++	    i == grp->bb_largest_free_order) {
++		grp->bb_largest_free_order = i;
+ 		return;
++	}
+ 
+-	if (old >= 0 && !list_empty(&grp->bb_largest_free_order_node)) {
+-		write_lock(&sbi->s_mb_largest_free_orders_locks[old]);
++	if (grp->bb_largest_free_order >= 0) {
++		write_lock(&sbi->s_mb_largest_free_orders_locks[
++					      grp->bb_largest_free_order]);
+ 		list_del_init(&grp->bb_largest_free_order_node);
+-		write_unlock(&sbi->s_mb_largest_free_orders_locks[old]);
++		write_unlock(&sbi->s_mb_largest_free_orders_locks[
++					      grp->bb_largest_free_order]);
+ 	}
+-
+-	grp->bb_largest_free_order = new;
+-	if (test_opt2(sb, MB_OPTIMIZE_SCAN) && new >= 0 && grp->bb_free) {
+-		write_lock(&sbi->s_mb_largest_free_orders_locks[new]);
++	grp->bb_largest_free_order = i;
++	if (grp->bb_largest_free_order >= 0 && grp->bb_free) {
++		write_lock(&sbi->s_mb_largest_free_orders_locks[
++					      grp->bb_largest_free_order]);
+ 		list_add_tail(&grp->bb_largest_free_order_node,
+-			      &sbi->s_mb_largest_free_orders[new]);
+-		write_unlock(&sbi->s_mb_largest_free_orders_locks[new]);
++		      &sbi->s_mb_largest_free_orders[grp->bb_largest_free_order]);
++		write_unlock(&sbi->s_mb_largest_free_orders_locks[
++					      grp->bb_largest_free_order]);
+ 	}
+ }
+ 
+diff --git a/fs/ext4/page-io.c b/fs/ext4/page-io.c
+index 3d8b0f6d2dea..179e54f3a3b6 100644
+--- a/fs/ext4/page-io.c
++++ b/fs/ext4/page-io.c
+@@ -236,12 +236,10 @@ static void dump_completed_IO(struct inode *inode, struct list_head *head)
+ 
+ static bool ext4_io_end_defer_completion(ext4_io_end_t *io_end)
+ {
+-	if (io_end->flag & EXT4_IO_END_UNWRITTEN &&
+-	    !list_empty(&io_end->list_vec))
++	if (io_end->flag & EXT4_IO_END_UNWRITTEN)
+ 		return true;
+ 	if (test_opt(io_end->inode->i_sb, DATA_ERR_ABORT) &&
+-	    io_end->flag & EXT4_IO_END_FAILED &&
+-	    !ext4_emergency_state(io_end->inode->i_sb))
++	    io_end->flag & EXT4_IO_END_FAILED)
+ 		return true;
+ 	return false;
+ }
+@@ -258,7 +256,6 @@ static void ext4_add_complete_io(ext4_io_end_t *io_end)
+ 	WARN_ON(!(io_end->flag & EXT4_IO_END_DEFER_COMPLETION));
+ 	WARN_ON(io_end->flag & EXT4_IO_END_UNWRITTEN &&
+ 		!io_end->handle && sbi->s_journal);
+-	WARN_ON(!io_end->bio);
+ 
+ 	spin_lock_irqsave(&ei->i_completed_io_lock, flags);
+ 	wq = sbi->rsv_conversion_wq;
+@@ -321,9 +318,12 @@ ext4_io_end_t *ext4_init_io_end(struct inode *inode, gfp_t flags)
+ void ext4_put_io_end_defer(ext4_io_end_t *io_end)
+ {
+ 	if (refcount_dec_and_test(&io_end->count)) {
+-		if (ext4_io_end_defer_completion(io_end))
+-			return ext4_add_complete_io(io_end);
+-
++		if (io_end->flag & EXT4_IO_END_FAILED ||
++		    (io_end->flag & EXT4_IO_END_UNWRITTEN &&
++		     !list_empty(&io_end->list_vec))) {
++			ext4_add_complete_io(io_end);
++			return;
++		}
+ 		ext4_release_io_end(io_end);
+ 	}
+ }
 -- 
 2.50.1
 
