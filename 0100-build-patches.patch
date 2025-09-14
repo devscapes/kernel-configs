@@ -1,4 +1,4 @@
-From 9fa4c41e23deb6980223a01ad0b9017015ad8de3 Mon Sep 17 00:00:00 2001
+From db1c7fd226d3d8a23a89ca330fda48d45383f130 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Sun, 29 Jun 2025 20:39:27 +0800
 Subject: [PATCH 1/4] Create alias to make that invokes CPU tuning
@@ -9,10 +9,10 @@ Subject: [PATCH 1/4] Create alias to make that invokes CPU tuning
  1 file changed, 15 insertions(+), 14 deletions(-)
 
 diff --git a/linux-cachyos/PKGBUILD b/linux-cachyos/PKGBUILD
-index c18362ec..b3e77692 100644
+index 1dc473b5..fb92ffc6 100644
 --- a/linux-cachyos/PKGBUILD
 +++ b/linux-cachyos/PKGBUILD
-@@ -275,6 +275,7 @@ export KBUILD_BUILD_USER="$pkgbase"
+@@ -274,6 +274,7 @@ export KBUILD_BUILD_USER="$pkgbase"
  export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
  
  _die() { error "$@" ; exit 1; }
@@ -20,7 +20,7 @@ index c18362ec..b3e77692 100644
  
  prepare() {
      cd "$_srcname"
-@@ -488,7 +489,7 @@ prepare() {
+@@ -487,7 +488,7 @@ prepare() {
      if [ "$_localmodcfg" = "yes" ]; then
          if [ -e "$_localmodcfg_path" ]; then
              echo "Running Steven Rostedt's make localmodconfig now"
@@ -29,7 +29,7 @@ index c18362ec..b3e77692 100644
          else
              _die "No modprobed.db data found"
          fi
-@@ -496,19 +497,19 @@ prepare() {
+@@ -495,19 +496,19 @@ prepare() {
  
      ### Rewrite configuration
      echo "Rewrite configuration..."
@@ -54,7 +54,7 @@ index c18362ec..b3e77692 100644
  
      ### Save configuration for later reuse
      echo "Save configuration for later reuse..."
-@@ -545,8 +546,8 @@ _sign_modules() {
+@@ -544,8 +545,8 @@ _sign_modules() {
  
  build() {
      cd "$_srcname"
@@ -65,7 +65,7 @@ index c18362ec..b3e77692 100644
  
      local MODULE_FLAGS=(
         KERNEL_UNAME="${_kernuname}"
-@@ -557,13 +558,13 @@ build() {
+@@ -556,13 +557,13 @@ build() {
      if [ "$_build_nvidia" = "yes" ]; then
          MODULE_FLAGS+=(NV_EXCLUDE_BUILD_MODULES='__EXCLUDE_MODULES')
          cd "${srcdir}/${_nv_pkg}/kernel"
@@ -81,7 +81,7 @@ index c18362ec..b3e77692 100644
      fi
  
      if [ "$_build_zfs" = "yes" ]; then
-@@ -578,7 +579,7 @@ build() {
+@@ -577,7 +578,7 @@ build() {
              --libdir=/usr/lib --datadir=/usr/share --includedir=/usr/include \
              --with-udevdir=/lib/udev --libexecdir=/usr/lib/zfs --with-config=kernel \
              --with-linux="${srcdir}/$_srcname"
@@ -90,7 +90,7 @@ index c18362ec..b3e77692 100644
      fi
  
  }
-@@ -599,13 +600,13 @@ _package() {
+@@ -603,13 +604,13 @@ _package() {
      echo "Installing boot image..."
      # systemd expects to find the kernel here to allow hibernation
      # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
@@ -106,7 +106,7 @@ index c18362ec..b3e77692 100644
          DEPMOD=/doesnt/exist  modules_install  # Suppress depmod
  
      # remove build links
-@@ -672,7 +673,7 @@ _package-headers() {
+@@ -678,7 +679,7 @@ _package-headers() {
      fi
  
      echo "Installing unstripped VDSO..."
@@ -116,10 +116,10 @@ index c18362ec..b3e77692 100644
  
      echo "Removing unneeded architectures..."
 -- 
-2.50.1
+2.51.0
 
 
-From 16b60f7fd1ff1d0c3b4ea7abe16068feba509613 Mon Sep 17 00:00:00 2001
+From efd07de60d5d957a0dc52e5a369f016042eb3354 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Sun, 29 Jun 2025 20:55:06 +0800
 Subject: [PATCH 2/4] Hard depend on same LLVM tools used to build kernel
@@ -129,10 +129,10 @@ Subject: [PATCH 2/4] Hard depend on same LLVM tools used to build kernel
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/linux-cachyos/PKGBUILD b/linux-cachyos/PKGBUILD
-index b3e77692..38b10678 100644
+index fb92ffc6..fed5e37e 100644
 --- a/linux-cachyos/PKGBUILD
 +++ b/linux-cachyos/PKGBUILD
-@@ -210,7 +210,8 @@ source=(
+@@ -209,7 +209,8 @@ source=(
  
  # LLVM makedepends
  if _is_lto_kernel; then
@@ -142,20 +142,20 @@ index b3e77692..38b10678 100644
      source+=("${_patchsource}/misc/dkms-clang.patch")
      BUILD_FLAGS=(
          CC=clang
-@@ -618,7 +619,7 @@ _package-headers() {
-     depends=('pahole' "${pkgbase}")
- 
+@@ -624,7 +625,7 @@ _package-headers() {
      if _is_lto_kernel; then
+         provides+=(linux-cachyos-lto-headers=$_kernver)
+         replaces=(linux-cachyos-lto-headers)
 -        depends+=(clang llvm lld)
 +        depends+=("clang=${_llvm_pkgver}" "lld=${_llvm_pkgver}" "llvm=${_llvm_pkgver}")
      fi
  
      cd "${_srcname}"
 -- 
-2.50.1
+2.51.0
 
 
-From c9dc5f01a40ef2847ab8b48595eb87ac63bc633f Mon Sep 17 00:00:00 2001
+From 4cec83212bd85db8cbdcaceac881288184f1a8b2 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Sun, 29 Jun 2025 21:26:47 +0800
 Subject: [PATCH 3/4] Package kernel signing key
@@ -165,10 +165,10 @@ Subject: [PATCH 3/4] Package kernel signing key
  1 file changed, 10 insertions(+)
 
 diff --git a/linux-cachyos/PKGBUILD b/linux-cachyos/PKGBUILD
-index 38b10678..e43c4c3f 100644
+index fed5e37e..e45510bf 100644
 --- a/linux-cachyos/PKGBUILD
 +++ b/linux-cachyos/PKGBUILD
-@@ -782,12 +782,22 @@ _package-nvidia-open(){
+@@ -788,12 +788,22 @@ _package-nvidia-open(){
      find "$pkgdir" -name '*.ko' -exec zstd --rm -19 -T0 {} +
  }
  
@@ -192,10 +192,10 @@ index 38b10678..e43c4c3f 100644
      eval "package_$_p() {
      $(declare -f "_package${_p#$pkgbase}")
 -- 
-2.50.1
+2.51.0
 
 
-From 23096635ee3e33f889f07c123a592a4395bcbf52 Mon Sep 17 00:00:00 2001
+From 7cdb764ab88ce8010130d69706396b2d99889751 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Thu, 21 Aug 2025 20:09:33 +0800
 Subject: [PATCH 4/4] Include config overrides
@@ -205,10 +205,10 @@ Subject: [PATCH 4/4] Include config overrides
  1 file changed, 3 insertions(+)
 
 diff --git a/linux-cachyos/PKGBUILD b/linux-cachyos/PKGBUILD
-index e43c4c3f..23f4dc9f 100644
+index e45510bf..02eac2ab 100644
 --- a/linux-cachyos/PKGBUILD
 +++ b/linux-cachyos/PKGBUILD
-@@ -150,6 +150,9 @@
+@@ -149,6 +149,9 @@
  # Enable this after the profiles have been generated
  : "${_propeller_profiles:=no}"
  
@@ -219,5 +219,5 @@ index e43c4c3f..23f4dc9f 100644
  _is_lto_kernel() {
      [[ "$_use_llvm_lto" = "thin" || "$_use_llvm_lto" = "full"  || "$_use_llvm_lto" = "thin-dist" ]]
 -- 
-2.50.1
+2.51.0
 

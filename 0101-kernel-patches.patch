@@ -1,4 +1,4 @@
-From 08fef4d71e2a206c8b9e1b5a89ded5fae1cf3335 Mon Sep 17 00:00:00 2001
+From 668d100f056b8a6d26da6fb5cedcfb3ceaa8704f Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Thu, 21 Aug 2025 14:57:19 +0800
 Subject: [PATCH 1/5] Additional hardening configs
@@ -63,7 +63,7 @@ index 0f1251cce314..d03bdb3aa5e7 100644
  	If set, provide RFC2861 behavior and time out the congestion
  	window after an idle period.  An idle period is defined at
 diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 8bed9030ad47..425e67fcd609 100644
+index 874c9b264d6f..cbee7396e7a3 100644
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
 @@ -1254,7 +1254,7 @@ config X86_ESPFIX64
@@ -145,7 +145,7 @@ index 5078ad868fee..3f4eac680811 100644
  #define TCP_RACK_LOSS_DETECTION  0x1 /* Use RACK to detect losses */
  #define TCP_RACK_STATIC_REO_WND  0x2 /* Use static RACK reo wnd */
 diff --git a/kernel/events/core.c b/kernel/events/core.c
-index 8060c2857bb2..4f9d56c96777 100644
+index 872122e074e5..601768a45c9f 100644
 --- a/kernel/events/core.c
 +++ b/kernel/events/core.c
 @@ -463,8 +463,13 @@ static struct kmem_cache *perf_event_cache;
@@ -162,7 +162,7 @@ index 8060c2857bb2..4f9d56c96777 100644
  
  /* Minimum for 512 kiB + 1 user control page. 'free' kiB per user. */
  static int sysctl_perf_event_mlock __read_mostly = 512 + (PAGE_SIZE / 1024);
-@@ -13377,7 +13382,7 @@ SYSCALL_DEFINE5(perf_event_open,
+@@ -13383,7 +13388,7 @@ SYSCALL_DEFINE5(perf_event_open,
  		return err;
  
  	/* Do we allow access to perf_event_open(2) ? */
@@ -288,10 +288,10 @@ index 1dc1f7b3bfb8..0bbbfa425045 100644
  		 "in /etc/sysctl.conf (e.g. kernel.perf_event_paranoid = <setting>)",
  		 perf_event_paranoid());
 -- 
-2.50.1
+2.51.0
 
 
-From ae37c01fe1c1f54042c956b8e6d459f6a3944a04 Mon Sep 17 00:00:00 2001
+From a82fe10742e0b4bb6cc4f4666ab5004984a39ca7 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Thu, 21 Aug 2025 14:57:41 +0800
 Subject: [PATCH 2/5] ntfs3_for_6.17
@@ -768,12 +768,12 @@ index e0055dcf8fe3..e519e21596a7 100644
  	int err;
  	__le32 value;
 -- 
-2.50.1
+2.51.0
 
 
-From f0c2ebc1a80e4f87d12669e226e7b52b17a4cc92 Mon Sep 17 00:00:00 2001
+From eff8932515e9006e8f858f6fca694fb3fdf93e81 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
-Date: Thu, 21 Aug 2025 15:01:12 +0800
+Date: Sun, 14 Sep 2025 12:55:09 +0800
 Subject: [PATCH 3/5] f2fs-for-6.17-rc1
 
 ---
@@ -791,7 +791,7 @@ Subject: [PATCH 3/5] f2fs-for-6.17-rc1
  fs/f2fs/inline.c                        |   20 +-
  fs/f2fs/inode.c                         |   63 +-
  fs/f2fs/namei.c                         |   12 +-
- fs/f2fs/node.c                          |  232 +--
+ fs/f2fs/node.c                          |  222 +--
  fs/f2fs/node.h                          |   77 +-
  fs/f2fs/recovery.c                      |  116 +-
  fs/f2fs/segment.c                       |   62 +-
@@ -800,7 +800,7 @@ Subject: [PATCH 3/5] f2fs-for-6.17-rc1
  fs/f2fs/sysfs.c                         |   27 +
  include/linux/f2fs_fs.h                 |    2 +-
  include/linux/fscrypt.h                 |   10 +-
- 23 files changed, 1885 insertions(+), 1454 deletions(-)
+ 23 files changed, 1875 insertions(+), 1454 deletions(-)
 
 diff --git a/Documentation/ABI/testing/sysfs-fs-f2fs b/Documentation/ABI/testing/sysfs-fs-f2fs
 index bf03263b9f46..bc0e7fefc39d 100644
@@ -2847,7 +2847,7 @@ index 07e333ee21b7..b882771e4699 100644
  }
  
 diff --git a/fs/f2fs/node.c b/fs/f2fs/node.c
-index 2fd287f2bca4..27743b93e186 100644
+index e8d1abbb8052..27743b93e186 100644
 --- a/fs/f2fs/node.c
 +++ b/fs/f2fs/node.c
 @@ -135,7 +135,7 @@ static struct folio *get_current_nat_folio(struct f2fs_sb_info *sbi, nid_t nid)
@@ -3045,24 +3045,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	dn->inode_folio = nfolio[0];
  	dn->inode_folio_locked = true;
  
-@@ -816,6 +827,16 @@ int f2fs_get_dnode_of_data(struct dnode_of_data *dn, pgoff_t index, int mode)
- 	for (i = 1; i <= level; i++) {
- 		bool done = false;
- 
-+		if (nids[i] && nids[i] == dn->inode->i_ino) {
-+			err = -EFSCORRUPTED;
-+			f2fs_err_ratelimited(sbi,
-+				"inode mapping table is corrupted, run fsck to fix it, "
-+				"ino:%lu, nid:%u, level:%d, offset:%d",
-+				dn->inode->i_ino, nids[i], level, offset[level]);
-+			set_sbi_flag(sbi, SBI_NEED_FSCK);
-+			goto release_pages;
-+		}
-+
- 		if (!nids[i] && mode == ALLOC_NODE) {
- 			/* alloc new node */
- 			if (!f2fs_alloc_nid(sbi, &(nids[i]))) {
-@@ -859,7 +880,7 @@ int f2fs_get_dnode_of_data(struct dnode_of_data *dn, pgoff_t index, int mode)
+@@ -869,7 +880,7 @@ int f2fs_get_dnode_of_data(struct dnode_of_data *dn, pgoff_t index, int mode)
  		}
  		if (i < level) {
  			parent = nfolio[i];
@@ -3071,7 +3054,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		}
  	}
  	dn->nid = nids[level];
-@@ -974,9 +995,9 @@ static int truncate_dnode(struct dnode_of_data *dn)
+@@ -984,9 +995,9 @@ static int truncate_dnode(struct dnode_of_data *dn)
  	else if (IS_ERR(folio))
  		return PTR_ERR(folio);
  
@@ -3083,7 +3066,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		set_sbi_flag(sbi, SBI_NEED_FSCK);
  		f2fs_handle_error(sbi, ERROR_INVALID_NODE_REFERENCE);
  		f2fs_folio_put(folio, true);
-@@ -1020,7 +1041,7 @@ static int truncate_nodes(struct dnode_of_data *dn, unsigned int nofs,
+@@ -1030,7 +1041,7 @@ static int truncate_nodes(struct dnode_of_data *dn, unsigned int nofs,
  
  	f2fs_ra_node_pages(folio, ofs, NIDS_PER_BLOCK);
  
@@ -3092,7 +3075,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	if (depth < 3) {
  		for (i = ofs; i < NIDS_PER_BLOCK; i++, freed++) {
  			child_nid = le32_to_cpu(rn->in.nid[i]);
-@@ -1083,7 +1104,7 @@ static int truncate_partial_nodes(struct dnode_of_data *dn,
+@@ -1093,7 +1104,7 @@ static int truncate_partial_nodes(struct dnode_of_data *dn,
  	int i;
  	int idx = depth - 2;
  
@@ -3101,7 +3084,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	if (!nid[0])
  		return 0;
  
-@@ -1096,14 +1117,14 @@ static int truncate_partial_nodes(struct dnode_of_data *dn,
+@@ -1106,14 +1117,14 @@ static int truncate_partial_nodes(struct dnode_of_data *dn,
  			idx = i - 1;
  			goto fail;
  		}
@@ -3118,7 +3101,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		if (!child_nid)
  			continue;
  		dn->nid = child_nid;
-@@ -1172,7 +1193,7 @@ int f2fs_truncate_inode_blocks(struct inode *inode, pgoff_t from)
+@@ -1182,7 +1193,7 @@ int f2fs_truncate_inode_blocks(struct inode *inode, pgoff_t from)
  	set_new_dnode(&dn, inode, folio, NULL, 0);
  	folio_unlock(folio);
  
@@ -3127,7 +3110,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	switch (level) {
  	case 0:
  	case 1:
-@@ -1201,7 +1222,7 @@ int f2fs_truncate_inode_blocks(struct inode *inode, pgoff_t from)
+@@ -1211,7 +1222,7 @@ int f2fs_truncate_inode_blocks(struct inode *inode, pgoff_t from)
  
  skip_partial:
  	while (cont) {
@@ -3136,7 +3119,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		switch (offset[0]) {
  		case NODE_DIR1_BLOCK:
  		case NODE_DIR2_BLOCK:
-@@ -1233,7 +1254,7 @@ int f2fs_truncate_inode_blocks(struct inode *inode, pgoff_t from)
+@@ -1243,7 +1254,7 @@ int f2fs_truncate_inode_blocks(struct inode *inode, pgoff_t from)
  		}
  		if (err < 0)
  			goto fail;
@@ -3145,7 +3128,7 @@ index 2fd287f2bca4..27743b93e186 100644
  			folio_lock(folio);
  			BUG_ON(!is_node_folio(folio));
  			set_nid(folio, offset[0], 0, true);
-@@ -1380,8 +1401,8 @@ struct folio *f2fs_new_node_folio(struct dnode_of_data *dn, unsigned int ofs)
+@@ -1390,8 +1401,8 @@ struct folio *f2fs_new_node_folio(struct dnode_of_data *dn, unsigned int ofs)
  	set_node_addr(sbi, &new_ni, NEW_ADDR, false);
  
  	f2fs_folio_wait_writeback(folio, NODE, true, true);
@@ -3156,7 +3139,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	if (!folio_test_uptodate(folio))
  		folio_mark_uptodate(folio);
  	if (folio_mark_dirty(folio))
-@@ -1413,7 +1434,7 @@ static int read_node_folio(struct folio *folio, blk_opf_t op_flags)
+@@ -1423,7 +1434,7 @@ static int read_node_folio(struct folio *folio, blk_opf_t op_flags)
  		.type = NODE,
  		.op = REQ_OP_READ,
  		.op_flags = op_flags,
@@ -3165,7 +3148,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		.encrypted_page = NULL,
  	};
  	int err;
-@@ -1475,17 +1496,15 @@ static int sanity_check_node_footer(struct f2fs_sb_info *sbi,
+@@ -1485,17 +1496,15 @@ static int sanity_check_node_footer(struct f2fs_sb_info *sbi,
  					struct folio *folio, pgoff_t nid,
  					enum node_type ntype)
  {
@@ -3188,7 +3171,7 @@ index 2fd287f2bca4..27743b93e186 100644
  			  next_blkaddr_of_node(folio));
  		set_sbi_flag(sbi, SBI_NEED_FSCK);
  		f2fs_handle_error(sbi, ERROR_INCONSISTENT_FOOTER);
-@@ -1566,7 +1585,7 @@ struct folio *f2fs_get_xnode_folio(struct f2fs_sb_info *sbi, pgoff_t xnid)
+@@ -1576,7 +1585,7 @@ struct folio *f2fs_get_xnode_folio(struct f2fs_sb_info *sbi, pgoff_t xnid)
  static struct folio *f2fs_get_node_folio_ra(struct folio *parent, int start)
  {
  	struct f2fs_sb_info *sbi = F2FS_F_SB(parent);
@@ -3197,7 +3180,7 @@ index 2fd287f2bca4..27743b93e186 100644
  
  	return __get_node_folio(sbi, nid, parent, start, NODE_TYPE_REGULAR);
  }
-@@ -1631,9 +1650,9 @@ static struct folio *last_fsync_dnode(struct f2fs_sb_info *sbi, nid_t ino)
+@@ -1641,9 +1650,9 @@ static struct folio *last_fsync_dnode(struct f2fs_sb_info *sbi, nid_t ino)
  				return ERR_PTR(-EIO);
  			}
  
@@ -3209,7 +3192,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				continue;
  
  			folio_lock(folio);
-@@ -1643,7 +1662,7 @@ static struct folio *last_fsync_dnode(struct f2fs_sb_info *sbi, nid_t ino)
+@@ -1653,7 +1662,7 @@ static struct folio *last_fsync_dnode(struct f2fs_sb_info *sbi, nid_t ino)
  				folio_unlock(folio);
  				continue;
  			}
@@ -3218,7 +3201,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				goto continue_unlock;
  
  			if (!folio_test_dirty(folio)) {
-@@ -1673,11 +1692,11 @@ static bool __write_node_folio(struct folio *folio, bool atomic, bool *submitted
+@@ -1683,11 +1692,11 @@ static bool __write_node_folio(struct folio *folio, bool atomic, bool *submitted
  	struct node_info ni;
  	struct f2fs_io_info fio = {
  		.sbi = sbi,
@@ -3232,7 +3215,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		.encrypted_page = NULL,
  		.submitted = 0,
  		.io_type = io_type,
-@@ -1702,11 +1721,11 @@ static bool __write_node_folio(struct folio *folio, bool atomic, bool *submitted
+@@ -1712,11 +1721,11 @@ static bool __write_node_folio(struct folio *folio, bool atomic, bool *submitted
  
  	if (!is_sbi_flag_set(sbi, SBI_CP_DISABLED) &&
  			wbc->sync_mode == WB_SYNC_NONE &&
@@ -3246,7 +3229,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	f2fs_bug_on(sbi, folio->index != nid);
  
  	if (f2fs_get_node_info(sbi, nid, &ni, !do_balance))
-@@ -1744,7 +1763,7 @@ static bool __write_node_folio(struct folio *folio, bool atomic, bool *submitted
+@@ -1754,7 +1763,7 @@ static bool __write_node_folio(struct folio *folio, bool atomic, bool *submitted
  
  	fio.old_blkaddr = ni.blk_addr;
  	f2fs_do_write_node_page(nid, &fio);
@@ -3255,7 +3238,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	dec_page_count(sbi, F2FS_DIRTY_NODES);
  	f2fs_up_read(&sbi->node_write);
  
-@@ -1840,9 +1859,9 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
+@@ -1850,9 +1859,9 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
  				goto out;
  			}
  
@@ -3267,7 +3250,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				continue;
  
  			folio_lock(folio);
-@@ -1852,7 +1871,7 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
+@@ -1862,7 +1871,7 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
  				folio_unlock(folio);
  				continue;
  			}
@@ -3276,7 +3259,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				goto continue_unlock;
  
  			if (!folio_test_dirty(folio) && folio != last_folio) {
-@@ -1862,17 +1881,17 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
+@@ -1872,17 +1881,17 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
  
  			f2fs_folio_wait_writeback(folio, NODE, true, true);
  
@@ -3299,7 +3282,7 @@ index 2fd287f2bca4..27743b93e186 100644
  						f2fs_need_dentry_mark(sbi, ino));
  				}
  				/* may be written by other thread */
-@@ -1948,7 +1967,7 @@ static bool flush_dirty_inode(struct folio *folio)
+@@ -1958,7 +1967,7 @@ static bool flush_dirty_inode(struct folio *folio)
  {
  	struct f2fs_sb_info *sbi = F2FS_F_SB(folio);
  	struct inode *inode;
@@ -3308,7 +3291,7 @@ index 2fd287f2bca4..27743b93e186 100644
  
  	inode = find_inode_nowait(sbi->sb, ino, f2fs_match_ino, NULL);
  	if (!inode)
-@@ -1977,7 +1996,7 @@ void f2fs_flush_inline_data(struct f2fs_sb_info *sbi)
+@@ -1987,7 +1996,7 @@ void f2fs_flush_inline_data(struct f2fs_sb_info *sbi)
  		for (i = 0; i < nr_folios; i++) {
  			struct folio *folio = fbatch.folios[i];
  
@@ -3317,7 +3300,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				continue;
  
  			folio_lock(folio);
-@@ -1988,10 +2007,10 @@ void f2fs_flush_inline_data(struct f2fs_sb_info *sbi)
+@@ -1998,10 +2007,10 @@ void f2fs_flush_inline_data(struct f2fs_sb_info *sbi)
  				goto unlock;
  
  			/* flush inline_data, if it's async context. */
@@ -3331,7 +3314,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				continue;
  			}
  unlock:
-@@ -2040,13 +2059,13 @@ int f2fs_sync_node_pages(struct f2fs_sb_info *sbi,
+@@ -2050,13 +2059,13 @@ int f2fs_sync_node_pages(struct f2fs_sb_info *sbi,
  			 * 1. dentry dnodes
  			 * 2. file dnodes
  			 */
@@ -3350,7 +3333,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				continue;
  lock_node:
  			if (wbc->sync_mode == WB_SYNC_ALL)
-@@ -2070,15 +2089,15 @@ int f2fs_sync_node_pages(struct f2fs_sb_info *sbi,
+@@ -2080,15 +2089,15 @@ int f2fs_sync_node_pages(struct f2fs_sb_info *sbi,
  				goto write_node;
  
  			/* flush inline_data */
@@ -3370,7 +3353,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				goto lock_node;
  write_node:
  			f2fs_folio_wait_writeback(folio, NODE, true, true);
-@@ -2086,8 +2105,8 @@ int f2fs_sync_node_pages(struct f2fs_sb_info *sbi,
+@@ -2096,8 +2105,8 @@ int f2fs_sync_node_pages(struct f2fs_sb_info *sbi,
  			if (!folio_clear_dirty_for_io(folio))
  				goto continue_unlock;
  
@@ -3381,7 +3364,7 @@ index 2fd287f2bca4..27743b93e186 100644
  
  			if (!__write_node_folio(folio, false, &submitted,
  					wbc, do_balance, io_type, NULL)) {
-@@ -2214,12 +2233,12 @@ static bool f2fs_dirty_node_folio(struct address_space *mapping,
+@@ -2224,12 +2233,12 @@ static bool f2fs_dirty_node_folio(struct address_space *mapping,
  	if (!folio_test_uptodate(folio))
  		folio_mark_uptodate(folio);
  #ifdef CONFIG_F2FS_CHECK_FS
@@ -3397,7 +3380,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		return true;
  	}
  	return false;
-@@ -2364,7 +2383,7 @@ static bool add_free_nid(struct f2fs_sb_info *sbi,
+@@ -2374,7 +2383,7 @@ static bool add_free_nid(struct f2fs_sb_info *sbi,
  		 *   - __remove_nid_from_list(PREALLOC_NID)
  		 *                         - __insert_nid_to_list(FREE_NID)
  		 */
@@ -3406,7 +3389,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		if (ne && (!get_nat_flag(ne, IS_CHECKPOINTED) ||
  				nat_get_blkaddr(ne) != NULL_ADDR))
  			goto err_out;
-@@ -2727,7 +2746,7 @@ int f2fs_recover_inline_xattr(struct inode *inode, struct folio *folio)
+@@ -2737,7 +2746,7 @@ int f2fs_recover_inline_xattr(struct inode *inode, struct folio *folio)
  	if (IS_ERR(ifolio))
  		return PTR_ERR(ifolio);
  
@@ -3415,7 +3398,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	if (ri->i_inline & F2FS_INLINE_XATTR) {
  		if (!f2fs_has_inline_xattr(inode)) {
  			set_inode_flag(inode, FI_INLINE_XATTR);
-@@ -2753,7 +2772,7 @@ int f2fs_recover_inline_xattr(struct inode *inode, struct folio *folio)
+@@ -2763,7 +2772,7 @@ int f2fs_recover_inline_xattr(struct inode *inode, struct folio *folio)
  	return 0;
  }
  
@@ -3424,7 +3407,7 @@ index 2fd287f2bca4..27743b93e186 100644
  {
  	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
  	nid_t prev_xnid = F2FS_I(inode)->i_xattr_nid;
-@@ -2791,8 +2810,8 @@ int f2fs_recover_xattr_data(struct inode *inode, struct page *page)
+@@ -2801,8 +2810,8 @@ int f2fs_recover_xattr_data(struct inode *inode, struct page *page)
  	f2fs_update_inode_page(inode);
  
  	/* 3: update and set xattr node page dirty */
@@ -3435,7 +3418,7 @@ index 2fd287f2bca4..27743b93e186 100644
  				VALID_XATTR_BLOCK_SIZE);
  		folio_mark_dirty(xfolio);
  	}
-@@ -2801,10 +2820,10 @@ int f2fs_recover_xattr_data(struct inode *inode, struct page *page)
+@@ -2811,10 +2820,10 @@ int f2fs_recover_xattr_data(struct inode *inode, struct page *page)
  	return 0;
  }
  
@@ -3448,7 +3431,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	struct node_info old_ni, new_ni;
  	struct folio *ifolio;
  	int err;
-@@ -2827,11 +2846,11 @@ int f2fs_recover_inode_page(struct f2fs_sb_info *sbi, struct page *page)
+@@ -2837,11 +2846,11 @@ int f2fs_recover_inode_page(struct f2fs_sb_info *sbi, struct page *page)
  
  	if (!folio_test_uptodate(ifolio))
  		folio_mark_uptodate(ifolio);
@@ -3464,7 +3447,7 @@ index 2fd287f2bca4..27743b93e186 100644
  
  	memcpy(dst, src, offsetof(struct f2fs_inode, i_ext));
  	dst->i_size = 0;
-@@ -2897,7 +2916,7 @@ int f2fs_restore_node_summary(struct f2fs_sb_info *sbi,
+@@ -2907,7 +2916,7 @@ int f2fs_restore_node_summary(struct f2fs_sb_info *sbi,
  			if (IS_ERR(folio))
  				return PTR_ERR(folio);
  
@@ -3473,7 +3456,7 @@ index 2fd287f2bca4..27743b93e186 100644
  			sum_entry->nid = rn->footer.nid;
  			sum_entry->version = 0;
  			sum_entry->ofs_in_node = 0;
-@@ -2917,6 +2936,7 @@ static void remove_nats_in_journal(struct f2fs_sb_info *sbi)
+@@ -2927,6 +2936,7 @@ static void remove_nats_in_journal(struct f2fs_sb_info *sbi)
  	struct curseg_info *curseg = CURSEG_I(sbi, CURSEG_HOT_DATA);
  	struct f2fs_journal *journal = curseg->journal;
  	int i;
@@ -3481,7 +3464,7 @@ index 2fd287f2bca4..27743b93e186 100644
  
  	down_write(&curseg->journal_rwsem);
  	for (i = 0; i < nats_in_cursum(journal); i++) {
-@@ -2927,12 +2947,15 @@ static void remove_nats_in_journal(struct f2fs_sb_info *sbi)
+@@ -2937,12 +2947,15 @@ static void remove_nats_in_journal(struct f2fs_sb_info *sbi)
  		if (f2fs_check_nid_range(sbi, nid))
  			continue;
  
@@ -3499,7 +3482,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		}
  
  		/*
-@@ -2947,7 +2970,7 @@ static void remove_nats_in_journal(struct f2fs_sb_info *sbi)
+@@ -2957,7 +2970,7 @@ static void remove_nats_in_journal(struct f2fs_sb_info *sbi)
  			spin_unlock(&nm_i->nid_list_lock);
  		}
  
@@ -3508,7 +3491,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	}
  	update_nats_in_cursum(journal, -i);
  	up_write(&curseg->journal_rwsem);
-@@ -2972,11 +2995,10 @@ static void __adjust_nat_entry_set(struct nat_entry_set *nes,
+@@ -2982,11 +2995,10 @@ static void __adjust_nat_entry_set(struct nat_entry_set *nes,
  }
  
  static void __update_nat_bits(struct f2fs_sb_info *sbi, nid_t start_nid,
@@ -3521,7 +3504,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	int valid = 0;
  	int i = 0;
  
-@@ -3013,7 +3035,7 @@ static int __flush_nat_entry_set(struct f2fs_sb_info *sbi,
+@@ -3023,7 +3035,7 @@ static int __flush_nat_entry_set(struct f2fs_sb_info *sbi,
  	bool to_journal = true;
  	struct f2fs_nat_block *nat_blk;
  	struct nat_entry *ne, *cur;
@@ -3530,7 +3513,7 @@ index 2fd287f2bca4..27743b93e186 100644
  
  	/*
  	 * there are two steps to flush nat entries:
-@@ -3027,11 +3049,11 @@ static int __flush_nat_entry_set(struct f2fs_sb_info *sbi,
+@@ -3037,11 +3049,11 @@ static int __flush_nat_entry_set(struct f2fs_sb_info *sbi,
  	if (to_journal) {
  		down_write(&curseg->journal_rwsem);
  	} else {
@@ -3546,7 +3529,7 @@ index 2fd287f2bca4..27743b93e186 100644
  		f2fs_bug_on(sbi, !nat_blk);
  	}
  
-@@ -3067,8 +3089,8 @@ static int __flush_nat_entry_set(struct f2fs_sb_info *sbi,
+@@ -3077,8 +3089,8 @@ static int __flush_nat_entry_set(struct f2fs_sb_info *sbi,
  	if (to_journal) {
  		up_write(&curseg->journal_rwsem);
  	} else {
@@ -3557,7 +3540,7 @@ index 2fd287f2bca4..27743b93e186 100644
  	}
  
  	/* Allow dirty nats by node block allocation in write_begin */
-@@ -3408,10 +3430,10 @@ void f2fs_destroy_node_manager(struct f2fs_sb_info *sbi)
+@@ -3418,10 +3430,10 @@ void f2fs_destroy_node_manager(struct f2fs_sb_info *sbi)
  	}
  	kvfree(nm_i->free_nid_count);
  
@@ -7175,19 +7158,22 @@ index 56fad33043d5..8d9127a0fdb3 100644
  	WARN_ON_ONCE(1);
  	return ERR_PTR(-EINVAL);
 -- 
-2.50.1
+2.51.0
 
 
-From 4bfc24f93e0015305254116d1b4f35ff17cfde90 Mon Sep 17 00:00:00 2001
+From 06a2d7fbfaf3aea32e5fe3de26ec656555ba0658 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
-Date: Fri, 22 Aug 2025 21:18:32 +0800
+Date: Sun, 14 Sep 2025 14:40:17 +0800
 Subject: [PATCH 4/5] Fixes for "broken" backports
 
 ---
- drivers/mfd/axp20x.c           |  5 ++--
- drivers/net/usb/asix_devices.c |  2 +-
- fs/btrfs/zoned.c               | 55 +++++++++++++++++++++++++++++-----
- 3 files changed, 50 insertions(+), 12 deletions(-)
+ drivers/mfd/axp20x.c                        | 5 ++---
+ drivers/net/ethernet/intel/i40e/i40e_main.c | 2 +-
+ fs/nilfs2/sysfs.c                           | 4 ++--
+ fs/nilfs2/sysfs.h                           | 8 ++++----
+ fs/proc/generic.c                           | 3 ++-
+ net/netlink/genetlink.c                     | 3 +++
+ 6 files changed, 14 insertions(+), 11 deletions(-)
 
 diff --git a/drivers/mfd/axp20x.c b/drivers/mfd/axp20x.c
 index 25c639b348cd..c5f0ebae327f 100644
@@ -7205,147 +7191,119 @@ index 25c639b348cd..c5f0ebae327f 100644
  };
  
  static int axp20x_power_off(struct sys_off_data *data)
-diff --git a/drivers/net/usb/asix_devices.c b/drivers/net/usb/asix_devices.c
-index d9f5942ccc44..792ddda1ad49 100644
---- a/drivers/net/usb/asix_devices.c
-+++ b/drivers/net/usb/asix_devices.c
-@@ -676,7 +676,7 @@ static int ax88772_init_mdio(struct usbnet *dev)
- 	priv->mdio->read = &asix_mdio_bus_read;
- 	priv->mdio->write = &asix_mdio_bus_write;
- 	priv->mdio->name = "Asix MDIO Bus";
--	priv->mdio->phy_mask = ~(BIT(priv->phy_addr) | BIT(AX_EMBD_PHY_ADDR));
-+	priv->mdio->phy_mask = ~(BIT(priv->phy_addr & 0x1f) | BIT(AX_EMBD_PHY_ADDR));
- 	/* mii bus name is usb-<usb bus number>-<usb device number> */
- 	snprintf(priv->mdio->id, MII_BUS_ID_SIZE, "usb-%03d:%03d",
- 		 dev->udev->bus->busnum, dev->udev->devnum);
-diff --git a/fs/btrfs/zoned.c b/fs/btrfs/zoned.c
-index 5439d8374716..d392fca9369b 100644
---- a/fs/btrfs/zoned.c
-+++ b/fs/btrfs/zoned.c
-@@ -18,6 +18,7 @@
- #include "accessors.h"
- #include "bio.h"
- #include "transaction.h"
-+#include "sysfs.h"
- 
- /* Maximum number of zones to report per blkdev_report_zones() call */
- #define BTRFS_REPORT_NR_ZONES   4096
-@@ -2505,12 +2506,12 @@ void btrfs_clear_data_reloc_bg(struct btrfs_block_group *bg)
- void btrfs_zoned_reserve_data_reloc_bg(struct btrfs_fs_info *fs_info)
- {
- 	struct btrfs_space_info *data_sinfo = fs_info->data_sinfo;
--	struct btrfs_space_info *space_info = data_sinfo->sub_group[0];
-+	struct btrfs_space_info *space_info = data_sinfo;
- 	struct btrfs_trans_handle *trans;
- 	struct btrfs_block_group *bg;
- 	struct list_head *bg_list;
- 	u64 alloc_flags;
--	bool initial = false;
-+	bool first = true;
- 	bool did_chunk_alloc = false;
- 	int index;
- 	int ret;
-@@ -2524,21 +2525,52 @@ void btrfs_zoned_reserve_data_reloc_bg(struct btrfs_fs_info *fs_info)
- 	if (sb_rdonly(fs_info->sb))
- 		return;
- 
--	ASSERT(space_info->subgroup_id == BTRFS_SUB_GROUP_DATA_RELOC);
- 	alloc_flags = btrfs_get_alloc_profile(fs_info, space_info->flags);
- 	index = btrfs_bg_flags_to_raid_index(alloc_flags);
- 
--	bg_list = &data_sinfo->block_groups[index];
-+	/* Scan the data space_info to find empty block groups. Take the second one. */
- again:
-+	bg_list = &space_info->block_groups[index];
- 	list_for_each_entry(bg, bg_list, list) {
--		if (bg->used > 0)
-+		if (bg->alloc_offset != 0)
- 			continue;
- 
--		if (!initial) {
--			initial = true;
-+		if (first) {
-+			first = false;
- 			continue;
- 		}
- 
-+		if (space_info == data_sinfo) {
-+			/* Migrate the block group to the data relocation space_info. */
-+			struct btrfs_space_info *reloc_sinfo = data_sinfo->sub_group[0];
-+			int factor;
-+
-+			ASSERT(reloc_sinfo->subgroup_id == BTRFS_SUB_GROUP_DATA_RELOC);
-+			factor = btrfs_bg_type_to_factor(bg->flags);
-+
-+			down_write(&space_info->groups_sem);
-+			list_del_init(&bg->list);
-+			/* We can assume this as we choose the second empty one. */
-+			ASSERT(!list_empty(&space_info->block_groups[index]));
-+			up_write(&space_info->groups_sem);
-+
-+			spin_lock(&space_info->lock);
-+			space_info->total_bytes -= bg->length;
-+			space_info->disk_total -= bg->length * factor;
-+			/* There is no allocation ever happened. */
-+			ASSERT(bg->used == 0);
-+			ASSERT(bg->zone_unusable == 0);
-+			/* No super block in a block group on the zoned setup. */
-+			ASSERT(bg->bytes_super == 0);
-+			spin_unlock(&space_info->lock);
-+
-+			bg->space_info = reloc_sinfo;
-+			if (reloc_sinfo->block_group_kobjs[index] == NULL)
-+				btrfs_sysfs_add_block_group_type(bg);
-+
-+			btrfs_add_bg_to_space_info(fs_info, bg);
-+		}
-+
- 		fs_info->data_reloc_bg = bg->start;
- 		set_bit(BLOCK_GROUP_FLAG_ZONED_DATA_RELOC, &bg->runtime_flags);
- 		btrfs_zone_activate(bg);
-@@ -2553,11 +2585,18 @@ void btrfs_zoned_reserve_data_reloc_bg(struct btrfs_fs_info *fs_info)
- 	if (IS_ERR(trans))
- 		return;
- 
-+	/* Allocate new BG in the data relocation space_info. */
-+	space_info = data_sinfo->sub_group[0];
-+	ASSERT(space_info->subgroup_id == BTRFS_SUB_GROUP_DATA_RELOC);
- 	ret = btrfs_chunk_alloc(trans, space_info, alloc_flags, CHUNK_ALLOC_FORCE);
- 	btrfs_end_transaction(trans);
- 	if (ret == 1) {
-+		/*
-+		 * We allocated a new block group in the data relocation space_info. We
-+		 * can take that one.
-+		 */
-+		first = false;
- 		did_chunk_alloc = true;
--		bg_list = &space_info->block_groups[index];
- 		goto again;
+diff --git a/drivers/net/ethernet/intel/i40e/i40e_main.c b/drivers/net/ethernet/intel/i40e/i40e_main.c
+index f1c9e575703e..26dcdceae741 100644
+--- a/drivers/net/ethernet/intel/i40e/i40e_main.c
++++ b/drivers/net/ethernet/intel/i40e/i40e_main.c
+@@ -4182,7 +4182,7 @@ static int i40e_vsi_request_irq_msix(struct i40e_vsi *vsi, char *basename)
+ 		irq_num = pf->msix_entries[base + vector].vector;
+ 		irq_set_affinity_notifier(irq_num, NULL);
+ 		irq_update_affinity_hint(irq_num, NULL);
+-		free_irq(irq_num, &vsi->q_vectors[vector]);
++		free_irq(irq_num, vsi->q_vectors[vector]);
  	}
+ 	return err;
  }
+diff --git a/fs/nilfs2/sysfs.c b/fs/nilfs2/sysfs.c
+index 14868a3dd592..bc52afbfc5c7 100644
+--- a/fs/nilfs2/sysfs.c
++++ b/fs/nilfs2/sysfs.c
+@@ -1075,7 +1075,7 @@ void nilfs_sysfs_delete_device_group(struct the_nilfs *nilfs)
+  ************************************************************************/
+ 
+ static ssize_t nilfs_feature_revision_show(struct kobject *kobj,
+-					    struct attribute *attr, char *buf)
++					    struct kobj_attribute *attr, char *buf)
+ {
+ 	return sysfs_emit(buf, "%d.%d\n",
+ 			NILFS_CURRENT_REV, NILFS_MINOR_REV);
+@@ -1087,7 +1087,7 @@ static const char features_readme_str[] =
+ 	"(1) revision\n\tshow current revision of NILFS file system driver.\n";
+ 
+ static ssize_t nilfs_feature_README_show(struct kobject *kobj,
+-					 struct attribute *attr,
++					 struct kobj_attribute *attr,
+ 					 char *buf)
+ {
+ 	return sysfs_emit(buf, features_readme_str);
+diff --git a/fs/nilfs2/sysfs.h b/fs/nilfs2/sysfs.h
+index 78a87a016928..d370cd5cce3f 100644
+--- a/fs/nilfs2/sysfs.h
++++ b/fs/nilfs2/sysfs.h
+@@ -50,16 +50,16 @@ struct nilfs_sysfs_dev_subgroups {
+ 	struct completion sg_segments_kobj_unregister;
+ };
+ 
+-#define NILFS_COMMON_ATTR_STRUCT(name) \
++#define NILFS_KOBJ_ATTR_STRUCT(name) \
+ struct nilfs_##name##_attr { \
+ 	struct attribute attr; \
+-	ssize_t (*show)(struct kobject *, struct attribute *, \
++	ssize_t (*show)(struct kobject *, struct kobj_attribute *, \
+ 			char *); \
+-	ssize_t (*store)(struct kobject *, struct attribute *, \
++	ssize_t (*store)(struct kobject *, struct kobj_attribute *, \
+ 			 const char *, size_t); \
+ }
+ 
+-NILFS_COMMON_ATTR_STRUCT(feature);
++NILFS_KOBJ_ATTR_STRUCT(feature);
+ 
+ #define NILFS_DEV_ATTR_STRUCT(name) \
+ struct nilfs_##name##_attr { \
+diff --git a/fs/proc/generic.c b/fs/proc/generic.c
+index 409bc1d11eca..8e1e48760ffe 100644
+--- a/fs/proc/generic.c
++++ b/fs/proc/generic.c
+@@ -390,7 +390,8 @@ struct proc_dir_entry *proc_register(struct proc_dir_entry *dir,
+ 	if (proc_alloc_inum(&dp->low_ino))
+ 		goto out_free_entry;
+ 
+-	pde_set_flags(dp);
++	if (!S_ISDIR(dp->mode))
++		pde_set_flags(dp);
+ 
+ 	write_lock(&proc_subdir_lock);
+ 	dp->parent = dir;
+diff --git a/net/netlink/genetlink.c b/net/netlink/genetlink.c
+index 104732d34543..978c129c6095 100644
+--- a/net/netlink/genetlink.c
++++ b/net/netlink/genetlink.c
+@@ -1836,6 +1836,9 @@ static int genl_bind(struct net *net, int group)
+ 		    !ns_capable(net->user_ns, CAP_SYS_ADMIN))
+ 			ret = -EPERM;
+ 
++		if (ret)
++			break;
++
+ 		if (family->bind)
+ 			family->bind(i);
+ 
 -- 
-2.50.1
+2.51.0
 
 
-From a7f305b86939ad2207a719a4c946f6591272a87f Mon Sep 17 00:00:00 2001
+From 463a10a5346da1dce74f39121fbcf1cadff42de5 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
-Date: Fri, 22 Aug 2025 21:19:10 +0800
+Date: Sun, 14 Sep 2025 14:41:02 +0800
 Subject: [PATCH 5/5] Revert problematic patches
 
 ---
- drivers/iommu/intel/iommu.c | 19 +----------
- drivers/iommu/intel/iommu.h |  3 --
- fs/ext4/ext4.h              |  2 +-
- fs/ext4/ialloc.c            |  3 +-
- fs/ext4/inline.c            | 21 ++----------
- fs/ext4/inode.c             | 29 ++++------------
- fs/ext4/mballoc-test.c      |  9 -----
- fs/ext4/mballoc.c           | 67 ++++++++++++++++++++-----------------
- fs/ext4/page-io.c           | 16 ++++-----
- 9 files changed, 57 insertions(+), 112 deletions(-)
+ drivers/iommu/intel/iommu.c |  19 +-
+ drivers/iommu/intel/iommu.h |   3 -
+ fs/ext4/ext4.h              |   4 +-
+ fs/ext4/extents.c           |   6 +-
+ fs/ext4/ialloc.c            |   3 +-
+ fs/ext4/inline.c            |   6 +-
+ fs/ext4/inode.c             | 349 +++++++++++++-----------------------
+ fs/ext4/move_extent.c       |   3 +-
+ fs/ext4/xattr.c             |   2 +-
+ include/trace/events/ext4.h |  47 +----
+ net/sunrpc/sched.c          |   2 -
+ 11 files changed, 149 insertions(+), 295 deletions(-)
 
 diff --git a/drivers/iommu/intel/iommu.c b/drivers/iommu/intel/iommu.c
-index ab4cd742f095..c0be0b64e4c7 100644
+index c239e280e43d..993851b2e82a 100644
 --- a/drivers/iommu/intel/iommu.c
 +++ b/drivers/iommu/intel/iommu.c
 @@ -1795,18 +1795,6 @@ static int domain_setup_first_level(struct intel_iommu *iommu,
@@ -7403,7 +7361,7 @@ index 61f42802fe9e..2d1afab5eedc 100644
  	spinlock_t lock;		/* Protect device tracking lists */
  	struct list_head devices;	/* all devices' list */
 diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index fe3366e98493..18373de980f2 100644
+index 9ac0a7d4fa0c..18373de980f2 100644
 --- a/fs/ext4/ext4.h
 +++ b/fs/ext4/ext4.h
 @@ -3020,7 +3020,7 @@ int ext4_walk_page_buffers(handle_t *handle,
@@ -7415,6 +7373,48 @@ index fe3366e98493..18373de980f2 100644
  #define FALL_BACK_TO_NONDELALLOC 1
  #define CONVERT_INLINE_DATA	 2
  
+@@ -3064,9 +3064,9 @@ extern int ext4_punch_hole(struct file *file, loff_t offset, loff_t length);
+ extern void ext4_set_inode_flags(struct inode *, bool init);
+ extern int ext4_alloc_da_blocks(struct inode *inode);
+ extern void ext4_set_aops(struct inode *inode);
++extern int ext4_writepage_trans_blocks(struct inode *);
+ extern int ext4_normal_submit_inode_data_buffers(struct jbd2_inode *jinode);
+ extern int ext4_chunk_trans_blocks(struct inode *, int nrblocks);
+-extern int ext4_chunk_trans_extent(struct inode *inode, int nrblocks);
+ extern int ext4_meta_trans_blocks(struct inode *inode, int lblocks,
+ 				  int pextents);
+ extern int ext4_zero_partial_blocks(handle_t *handle, struct inode *inode,
+diff --git a/fs/ext4/extents.c b/fs/ext4/extents.c
+index f0f155458697..b543a46fc809 100644
+--- a/fs/ext4/extents.c
++++ b/fs/ext4/extents.c
+@@ -5171,7 +5171,7 @@ ext4_ext_shift_path_extents(struct ext4_ext_path *path, ext4_lblk_t shift,
+ 				credits = depth + 2;
+ 			}
+ 
+-			restart_credits = ext4_chunk_trans_extent(inode, 0);
++			restart_credits = ext4_writepage_trans_blocks(inode);
+ 			err = ext4_datasem_ensure_credits(handle, inode, credits,
+ 					restart_credits, 0);
+ 			if (err) {
+@@ -5431,7 +5431,7 @@ static int ext4_collapse_range(struct file *file, loff_t offset, loff_t len)
+ 
+ 	truncate_pagecache(inode, start);
+ 
+-	credits = ext4_chunk_trans_extent(inode, 0);
++	credits = ext4_writepage_trans_blocks(inode);
+ 	handle = ext4_journal_start(inode, EXT4_HT_TRUNCATE, credits);
+ 	if (IS_ERR(handle))
+ 		return PTR_ERR(handle);
+@@ -5527,7 +5527,7 @@ static int ext4_insert_range(struct file *file, loff_t offset, loff_t len)
+ 
+ 	truncate_pagecache(inode, start);
+ 
+-	credits = ext4_chunk_trans_extent(inode, 0);
++	credits = ext4_writepage_trans_blocks(inode);
+ 	handle = ext4_journal_start(inode, EXT4_HT_TRUNCATE, credits);
+ 	if (IS_ERR(handle))
+ 		return PTR_ERR(handle);
 diff --git a/fs/ext4/ialloc.c b/fs/ext4/ialloc.c
 index df4051613b29..79aa3df8d019 100644
 --- a/fs/ext4/ialloc.c
@@ -7430,87 +7430,473 @@ index df4051613b29..79aa3df8d019 100644
  	ext4_update_inode_fsync_trans(handle, inode, 1);
  
 diff --git a/fs/ext4/inline.c b/fs/ext4/inline.c
-index 05313c8ffb9c..a1bbcdf40824 100644
+index 38874d62f88c..05313c8ffb9c 100644
 --- a/fs/ext4/inline.c
 +++ b/fs/ext4/inline.c
-@@ -303,11 +303,7 @@ static int ext4_create_inline_data(handle_t *handle,
- 	if (error)
- 		goto out;
- 
--	if (!is.s.not_found) {
--		EXT4_ERROR_INODE(inode, "unexpected inline data xattr");
--		error = -EFSCORRUPTED;
--		goto out;
--	}
-+	BUG_ON(!is.s.not_found);
- 
- 	error = ext4_xattr_ibody_set(handle, inode, &i, &is);
- 	if (error) {
-@@ -358,11 +354,7 @@ static int ext4_update_inline_data(handle_t *handle, struct inode *inode,
- 	if (error)
- 		goto out;
- 
--	if (is.s.not_found) {
--		EXT4_ERROR_INODE(inode, "missing inline data xattr");
--		error = -EFSCORRUPTED;
--		goto out;
--	}
-+	BUG_ON(is.s.not_found);
- 
- 	len -= EXT4_MIN_INLINE_DATA_SIZE;
- 	value = kzalloc(len, GFP_NOFS);
-@@ -620,7 +612,6 @@ static int ext4_convert_inline_data_to_extent(struct address_space *mapping,
- 	} else
- 		ret = ext4_block_write_begin(handle, folio, from, to,
- 					     ext4_get_block);
--	clear_buffer_new(folio_buffers(folio));
- 
- 	if (!ret && ext4_should_journal_data(inode)) {
- 		ret = ext4_walk_page_buffers(handle, inode,
-@@ -900,7 +891,6 @@ static int ext4_da_convert_inline_data_to_extent(struct address_space *mapping,
- 		return ret;
+@@ -570,7 +570,7 @@ static int ext4_convert_inline_data_to_extent(struct address_space *mapping,
+ 		return 0;
  	}
  
--	clear_buffer_new(folio_buffers(folio));
- 	folio_mark_dirty(folio);
- 	folio_mark_uptodate(folio);
- 	ext4_clear_inode_state(inode, EXT4_STATE_MAY_INLINE_DATA);
-@@ -1913,12 +1903,7 @@ int ext4_inline_data_truncate(struct inode *inode, int *has_inline)
- 			if ((err = ext4_xattr_ibody_find(inode, &i, &is)) != 0)
- 				goto out_error;
+-	needed_blocks = ext4_chunk_trans_extent(inode, 1);
++	needed_blocks = ext4_writepage_trans_blocks(inode);
  
--			if (is.s.not_found) {
--				EXT4_ERROR_INODE(inode,
--						 "missing inline data xattr");
--				err = -EFSCORRUPTED;
--				goto out_error;
--			}
-+			BUG_ON(is.s.not_found);
+ 	ret = ext4_get_inode_loc(inode, &iloc);
+ 	if (ret)
+@@ -1874,7 +1874,7 @@ int ext4_inline_data_truncate(struct inode *inode, int *has_inline)
+ 	};
  
- 			value_len = le32_to_cpu(is.s.here->e_value_size);
- 			value = kmalloc(value_len, GFP_NOFS);
+ 
+-	needed_blocks = ext4_chunk_trans_extent(inode, 1);
++	needed_blocks = ext4_writepage_trans_blocks(inode);
+ 	handle = ext4_journal_start(inode, EXT4_HT_INODE, needed_blocks);
+ 	if (IS_ERR(handle))
+ 		return PTR_ERR(handle);
+@@ -1994,7 +1994,7 @@ int ext4_convert_inline_data(struct inode *inode)
+ 			return 0;
+ 	}
+ 
+-	needed_blocks = ext4_chunk_trans_extent(inode, 1);
++	needed_blocks = ext4_writepage_trans_blocks(inode);
+ 
+ 	iloc.bh = NULL;
+ 	error = ext4_get_inode_loc(inode, &iloc);
 diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
-index 0f316632b8dd..be9a4cba35fd 100644
+index c0a85b754853..238d8c2695e7 100644
 --- a/fs/ext4/inode.c
 +++ b/fs/ext4/inode.c
-@@ -1171,7 +1171,7 @@ int ext4_block_write_begin(handle_t *handle, struct folio *folio,
- 			}
- 			continue;
- 		}
--		if (WARN_ON_ONCE(buffer_new(bh)))
-+		if (buffer_new(bh))
+@@ -877,26 +877,6 @@ static void ext4_update_bh_state(struct buffer_head *bh, unsigned long flags)
+ 	} while (unlikely(!try_cmpxchg(&bh->b_state, &old_state, new_state)));
+ }
+ 
+-/*
+- * Make sure that the current journal transaction has enough credits to map
+- * one extent. Return -EAGAIN if it cannot extend the current running
+- * transaction.
+- */
+-static inline int ext4_journal_ensure_extent_credits(handle_t *handle,
+-						     struct inode *inode)
+-{
+-	int credits;
+-	int ret;
+-
+-	/* Called from ext4_da_write_begin() which has no handle started? */
+-	if (!handle)
+-		return 0;
+-
+-	credits = ext4_chunk_trans_blocks(inode, 1);
+-	ret = __ext4_journal_ensure_credits(handle, credits, credits, 0);
+-	return ret <= 0 ? ret : -EAGAIN;
+-}
+-
+ static int _ext4_get_block(struct inode *inode, sector_t iblock,
+ 			   struct buffer_head *bh, int flags)
+ {
+@@ -1195,9 +1175,7 @@ int ext4_block_write_begin(handle_t *handle, struct folio *folio,
  			clear_buffer_new(bh);
  		if (!buffer_mapped(bh)) {
  			WARN_ON(bh->b_size != blocksize);
-@@ -1395,7 +1395,6 @@ static int write_end_fn(handle_t *handle, struct inode *inode,
- 	ret = ext4_dirty_journalled_data(handle, bh);
- 	clear_buffer_meta(bh);
- 	clear_buffer_prio(bh);
--	clear_buffer_new(bh);
- 	return ret;
+-			err = ext4_journal_ensure_extent_credits(handle, inode);
+-			if (!err)
+-				err = get_block(inode, block, bh, 1);
++			err = get_block(inode, block, bh, 1);
+ 			if (err)
+ 				break;
+ 			if (buffer_new(bh)) {
+@@ -1296,8 +1274,7 @@ static int ext4_write_begin(struct file *file, struct address_space *mapping,
+ 	 * Reserve one block more for addition to orphan list in case
+ 	 * we allocate blocks but write fails for some reason
+ 	 */
+-	needed_blocks = ext4_chunk_trans_extent(inode,
+-			ext4_journal_blocks_per_folio(inode)) + 1;
++	needed_blocks = ext4_writepage_trans_blocks(inode) + 1;
+ 	index = pos >> PAGE_SHIFT;
+ 
+ 	if (ext4_test_inode_state(inode, EXT4_STATE_MAY_INLINE_DATA)) {
+@@ -1397,9 +1374,8 @@ static int ext4_write_begin(struct file *file, struct address_space *mapping,
+ 				ext4_orphan_del(NULL, inode);
+ 		}
+ 
+-		if (ret == -EAGAIN ||
+-		    (ret == -ENOSPC &&
+-		     ext4_should_retry_alloc(inode->i_sb, &retries)))
++		if (ret == -ENOSPC &&
++		    ext4_should_retry_alloc(inode->i_sb, &retries))
+ 			goto retry_journal;
+ 		folio_put(folio);
+ 		return ret;
+@@ -1692,12 +1668,11 @@ struct mpage_da_data {
+ 	unsigned int can_map:1;	/* Can writepages call map blocks? */
+ 
+ 	/* These are internal state of ext4_do_writepages() */
+-	loff_t start_pos;	/* The start pos to write */
+-	loff_t next_pos;	/* Current pos to examine */
+-	loff_t end_pos;		/* Last pos to examine */
+-
++	pgoff_t first_page;	/* The first page to write */
++	pgoff_t next_page;	/* Current page to examine */
++	pgoff_t last_page;	/* Last page to examine */
+ 	/*
+-	 * Extent to map - this can be after start_pos because that can be
++	 * Extent to map - this can be after first_page because that can be
+ 	 * fully mapped. We somewhat abuse m_flags to store whether the extent
+ 	 * is delalloc or unwritten.
+ 	 */
+@@ -1717,38 +1692,38 @@ static void mpage_release_unused_pages(struct mpage_da_data *mpd,
+ 	struct inode *inode = mpd->inode;
+ 	struct address_space *mapping = inode->i_mapping;
+ 
+-	/* This is necessary when next_pos == 0. */
+-	if (mpd->start_pos >= mpd->next_pos)
++	/* This is necessary when next_page == 0. */
++	if (mpd->first_page >= mpd->next_page)
+ 		return;
+ 
+ 	mpd->scanned_until_end = 0;
++	index = mpd->first_page;
++	end   = mpd->next_page - 1;
+ 	if (invalidate) {
+ 		ext4_lblk_t start, last;
+-		start = EXT4_B_TO_LBLK(inode, mpd->start_pos);
+-		last = mpd->next_pos >> inode->i_blkbits;
++		start = index << (PAGE_SHIFT - inode->i_blkbits);
++		last = end << (PAGE_SHIFT - inode->i_blkbits);
+ 
+ 		/*
+ 		 * avoid racing with extent status tree scans made by
+ 		 * ext4_insert_delayed_block()
+ 		 */
+ 		down_write(&EXT4_I(inode)->i_data_sem);
+-		ext4_es_remove_extent(inode, start, last - start);
++		ext4_es_remove_extent(inode, start, last - start + 1);
+ 		up_write(&EXT4_I(inode)->i_data_sem);
+ 	}
+ 
+ 	folio_batch_init(&fbatch);
+-	index = mpd->start_pos >> PAGE_SHIFT;
+-	end = mpd->next_pos >> PAGE_SHIFT;
+-	while (index < end) {
+-		nr = filemap_get_folios(mapping, &index, end - 1, &fbatch);
++	while (index <= end) {
++		nr = filemap_get_folios(mapping, &index, end, &fbatch);
+ 		if (nr == 0)
+ 			break;
+ 		for (i = 0; i < nr; i++) {
+ 			struct folio *folio = fbatch.folios[i];
+ 
+-			if (folio_pos(folio) < mpd->start_pos)
++			if (folio->index < mpd->first_page)
+ 				continue;
+-			if (folio_next_index(folio) > end)
++			if (folio_next_index(folio) - 1 > end)
+ 				continue;
+ 			BUG_ON(!folio_test_locked(folio));
+ 			BUG_ON(folio_test_writeback(folio));
+@@ -2050,8 +2025,7 @@ int ext4_da_get_block_prep(struct inode *inode, sector_t iblock,
+ 
+ static void mpage_folio_done(struct mpage_da_data *mpd, struct folio *folio)
+ {
+-	mpd->start_pos += folio_size(folio);
+-	mpd->wbc->nr_to_write -= folio_nr_pages(folio);
++	mpd->first_page += folio_nr_pages(folio);
+ 	folio_unlock(folio);
  }
  
-@@ -5107,7 +5106,7 @@ static int check_igot_inode(struct inode *inode, ext4_iget_flags flags,
+@@ -2061,7 +2035,7 @@ static int mpage_submit_folio(struct mpage_da_data *mpd, struct folio *folio)
+ 	loff_t size;
+ 	int err;
+ 
+-	WARN_ON_ONCE(folio_pos(folio) != mpd->start_pos);
++	BUG_ON(folio->index != mpd->first_page);
+ 	folio_clear_dirty_for_io(folio);
+ 	/*
+ 	 * We have to be very careful here!  Nothing protects writeback path
+@@ -2082,6 +2056,8 @@ static int mpage_submit_folio(struct mpage_da_data *mpd, struct folio *folio)
+ 	    !ext4_verity_in_progress(mpd->inode))
+ 		len = size & (len - 1);
+ 	err = ext4_bio_write_folio(&mpd->io_submit, folio, len);
++	if (!err)
++		mpd->wbc->nr_to_write -= folio_nr_pages(folio);
+ 
+ 	return err;
+ }
+@@ -2348,11 +2324,6 @@ static int mpage_map_one_extent(handle_t *handle, struct mpage_da_data *mpd)
+ 	int get_blocks_flags;
+ 	int err, dioread_nolock;
+ 
+-	/* Make sure transaction has enough credits for this extent */
+-	err = ext4_journal_ensure_extent_credits(handle, inode);
+-	if (err < 0)
+-		return err;
+-
+ 	trace_ext4_da_write_pages_extent(inode, map);
+ 	/*
+ 	 * Call ext4_map_blocks() to allocate any delayed allocation blocks, or
+@@ -2391,47 +2362,6 @@ static int mpage_map_one_extent(handle_t *handle, struct mpage_da_data *mpd)
+ 	return 0;
+ }
+ 
+-/*
+- * This is used to submit mapped buffers in a single folio that is not fully
+- * mapped for various reasons, such as insufficient space or journal credits.
+- */
+-static int mpage_submit_partial_folio(struct mpage_da_data *mpd)
+-{
+-	struct inode *inode = mpd->inode;
+-	struct folio *folio;
+-	loff_t pos;
+-	int ret;
+-
+-	folio = filemap_get_folio(inode->i_mapping,
+-				  mpd->start_pos >> PAGE_SHIFT);
+-	if (IS_ERR(folio))
+-		return PTR_ERR(folio);
+-	/*
+-	 * The mapped position should be within the current processing folio
+-	 * but must not be the folio start position.
+-	 */
+-	pos = ((loff_t)mpd->map.m_lblk) << inode->i_blkbits;
+-	if (WARN_ON_ONCE((folio_pos(folio) == pos) ||
+-			 !folio_contains(folio, pos >> PAGE_SHIFT)))
+-		return -EINVAL;
+-
+-	ret = mpage_submit_folio(mpd, folio);
+-	if (ret)
+-		goto out;
+-	/*
+-	 * Update start_pos to prevent this folio from being released in
+-	 * mpage_release_unused_pages(), it will be reset to the aligned folio
+-	 * pos when this folio is written again in the next round. Additionally,
+-	 * do not update wbc->nr_to_write here, as it will be updated once the
+-	 * entire folio has finished processing.
+-	 */
+-	mpd->start_pos = pos;
+-out:
+-	folio_unlock(folio);
+-	folio_put(folio);
+-	return ret;
+-}
+-
+ /*
+  * mpage_map_and_submit_extent - map extent starting at mpd->lblk of length
+  *				 mpd->len and submit pages underlying it for IO
+@@ -2480,18 +2410,10 @@ static int mpage_map_and_submit_extent(handle_t *handle,
+ 			 * In the case of ENOSPC, if ext4_count_free_blocks()
+ 			 * is non-zero, a commit should free up blocks.
+ 			 */
+-			if ((err == -ENOMEM) || (err == -EAGAIN) ||
++			if ((err == -ENOMEM) ||
+ 			    (err == -ENOSPC && ext4_count_free_clusters(sb))) {
+-				/*
+-				 * We may have already allocated extents for
+-				 * some bhs inside the folio, issue the
+-				 * corresponding data to prevent stale data.
+-				 */
+-				if (progress) {
+-					if (mpage_submit_partial_folio(mpd))
+-						goto invalidate_dirty_pages;
++				if (progress)
+ 					goto update_disksize;
+-				}
+ 				return err;
+ 			}
+ 			ext4_msg(sb, KERN_CRIT,
+@@ -2525,7 +2447,7 @@ static int mpage_map_and_submit_extent(handle_t *handle,
+ 	 * Update on-disk size after IO is submitted.  Races with
+ 	 * truncate are avoided by checking i_size under i_data_sem.
+ 	 */
+-	disksize = mpd->start_pos;
++	disksize = ((loff_t)mpd->first_page) << PAGE_SHIFT;
+ 	if (disksize > READ_ONCE(EXT4_I(inode)->i_disksize)) {
+ 		int err2;
+ 		loff_t i_size;
+@@ -2549,6 +2471,21 @@ static int mpage_map_and_submit_extent(handle_t *handle,
+ 	return err;
+ }
+ 
++/*
++ * Calculate the total number of credits to reserve for one writepages
++ * iteration. This is called from ext4_writepages(). We map an extent of
++ * up to MAX_WRITEPAGES_EXTENT_LEN blocks and then we go on and finish mapping
++ * the last partial page. So in total we can map MAX_WRITEPAGES_EXTENT_LEN +
++ * bpp - 1 blocks in bpp different extents.
++ */
++static int ext4_da_writepages_trans_blocks(struct inode *inode)
++{
++	int bpp = ext4_journal_blocks_per_folio(inode);
++
++	return ext4_meta_trans_blocks(inode,
++				MAX_WRITEPAGES_EXTENT_LEN + bpp - 1, bpp);
++}
++
+ static int ext4_journal_folio_buffers(handle_t *handle, struct folio *folio,
+ 				     size_t len)
+ {
+@@ -2613,8 +2550,8 @@ static int mpage_prepare_extent_to_map(struct mpage_da_data *mpd)
+ 	struct address_space *mapping = mpd->inode->i_mapping;
+ 	struct folio_batch fbatch;
+ 	unsigned int nr_folios;
+-	pgoff_t index = mpd->start_pos >> PAGE_SHIFT;
+-	pgoff_t end = mpd->end_pos >> PAGE_SHIFT;
++	pgoff_t index = mpd->first_page;
++	pgoff_t end = mpd->last_page;
+ 	xa_mark_t tag;
+ 	int i, err = 0;
+ 	int blkbits = mpd->inode->i_blkbits;
+@@ -2629,7 +2566,7 @@ static int mpage_prepare_extent_to_map(struct mpage_da_data *mpd)
+ 		tag = PAGECACHE_TAG_DIRTY;
+ 
+ 	mpd->map.m_len = 0;
+-	mpd->next_pos = mpd->start_pos;
++	mpd->next_page = index;
+ 	if (ext4_should_journal_data(mpd->inode)) {
+ 		handle = ext4_journal_start(mpd->inode, EXT4_HT_WRITE_PAGE,
+ 					    bpp);
+@@ -2660,8 +2597,7 @@ static int mpage_prepare_extent_to_map(struct mpage_da_data *mpd)
+ 				goto out;
+ 
+ 			/* If we can't merge this page, we are done. */
+-			if (mpd->map.m_len > 0 &&
+-			    mpd->next_pos != folio_pos(folio))
++			if (mpd->map.m_len > 0 && mpd->next_page != folio->index)
+ 				goto out;
+ 
+ 			if (handle) {
+@@ -2707,8 +2643,8 @@ static int mpage_prepare_extent_to_map(struct mpage_da_data *mpd)
+ 			}
+ 
+ 			if (mpd->map.m_len == 0)
+-				mpd->start_pos = folio_pos(folio);
+-			mpd->next_pos = folio_pos(folio) + folio_size(folio);
++				mpd->first_page = folio->index;
++			mpd->next_page = folio_next_index(folio);
+ 			/*
+ 			 * Writeout when we cannot modify metadata is simple.
+ 			 * Just submit the page. For data=journal mode we
+@@ -2836,12 +2772,12 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 	mpd->journalled_more_data = 0;
+ 
+ 	if (ext4_should_dioread_nolock(inode)) {
+-		int bpf = ext4_journal_blocks_per_folio(inode);
+ 		/*
+ 		 * We may need to convert up to one extent per block in
+-		 * the folio and we may dirty the inode.
++		 * the page and we may dirty the inode.
+ 		 */
+-		rsv_blocks = 1 + ext4_ext_index_trans_blocks(inode, bpf);
++		rsv_blocks = 1 + ext4_chunk_trans_blocks(inode,
++						PAGE_SIZE >> inode->i_blkbits);
+ 	}
+ 
+ 	if (wbc->range_start == 0 && wbc->range_end == LLONG_MAX)
+@@ -2851,18 +2787,18 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 		writeback_index = mapping->writeback_index;
+ 		if (writeback_index)
+ 			cycled = 0;
+-		mpd->start_pos = writeback_index << PAGE_SHIFT;
+-		mpd->end_pos = LLONG_MAX;
++		mpd->first_page = writeback_index;
++		mpd->last_page = -1;
+ 	} else {
+-		mpd->start_pos = wbc->range_start;
+-		mpd->end_pos = wbc->range_end;
++		mpd->first_page = wbc->range_start >> PAGE_SHIFT;
++		mpd->last_page = wbc->range_end >> PAGE_SHIFT;
+ 	}
+ 
+ 	ext4_io_submit_init(&mpd->io_submit, wbc);
+ retry:
+ 	if (wbc->sync_mode == WB_SYNC_ALL || wbc->tagged_writepages)
+-		tag_pages_for_writeback(mapping, mpd->start_pos >> PAGE_SHIFT,
+-					mpd->end_pos >> PAGE_SHIFT);
++		tag_pages_for_writeback(mapping, mpd->first_page,
++					mpd->last_page);
+ 	blk_start_plug(&plug);
+ 
+ 	/*
+@@ -2905,14 +2841,8 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 		 * not supported by delalloc.
+ 		 */
+ 		BUG_ON(ext4_should_journal_data(inode));
+-		/*
+-		 * Calculate the number of credits needed to reserve for one
+-		 * extent of up to MAX_WRITEPAGES_EXTENT_LEN blocks. It will
+-		 * attempt to extend the transaction or start a new iteration
+-		 * if the reserved credits are insufficient.
+-		 */
+-		needed_blocks = ext4_chunk_trans_blocks(inode,
+-						MAX_WRITEPAGES_EXTENT_LEN);
++		needed_blocks = ext4_da_writepages_trans_blocks(inode);
++
+ 		/* start a new transaction */
+ 		handle = ext4_journal_start_with_reserve(inode,
+ 				EXT4_HT_WRITE_PAGE, needed_blocks, rsv_blocks);
+@@ -2928,8 +2858,7 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 		}
+ 		mpd->do_map = 1;
+ 
+-		trace_ext4_da_write_folios_start(inode, mpd->start_pos,
+-				mpd->next_pos, wbc);
++		trace_ext4_da_write_pages(inode, mpd->first_page, wbc);
+ 		ret = mpage_prepare_extent_to_map(mpd);
+ 		if (!ret && mpd->map.m_len)
+ 			ret = mpage_map_and_submit_extent(handle, mpd,
+@@ -2967,8 +2896,6 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 		} else
+ 			ext4_put_io_end(mpd->io_submit.io_end);
+ 		mpd->io_submit.io_end = NULL;
+-		trace_ext4_da_write_folios_end(inode, mpd->start_pos,
+-				mpd->next_pos, wbc, ret);
+ 
+ 		if (ret == -ENOSPC && sbi->s_journal) {
+ 			/*
+@@ -2980,8 +2907,6 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 			ret = 0;
+ 			continue;
+ 		}
+-		if (ret == -EAGAIN)
+-			ret = 0;
+ 		/* Fatal error - ENOMEM, EIO... */
+ 		if (ret)
+ 			break;
+@@ -2990,8 +2915,8 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 	blk_finish_plug(&plug);
+ 	if (!ret && !cycled && wbc->nr_to_write > 0) {
+ 		cycled = 1;
+-		mpd->end_pos = (writeback_index << PAGE_SHIFT) - 1;
+-		mpd->start_pos = 0;
++		mpd->last_page = writeback_index - 1;
++		mpd->first_page = 0;
+ 		goto retry;
+ 	}
+ 
+@@ -3001,7 +2926,7 @@ static int ext4_do_writepages(struct mpage_da_data *mpd)
+ 		 * Set the writeback_index so that range_cyclic
+ 		 * mode will write it back later
+ 		 */
+-		mapping->writeback_index = mpd->start_pos >> PAGE_SHIFT;
++		mapping->writeback_index = mpd->first_page;
+ 
+ out_writepages:
+ 	trace_ext4_writepages_result(inode, wbc, ret,
+@@ -4465,7 +4390,7 @@ int ext4_punch_hole(struct file *file, loff_t offset, loff_t length)
+ 		return ret;
+ 
+ 	if (ext4_test_inode_flag(inode, EXT4_INODE_EXTENTS))
+-		credits = ext4_chunk_trans_extent(inode, 2);
++		credits = ext4_writepage_trans_blocks(inode);
+ 	else
+ 		credits = ext4_blocks_for_truncate(inode);
+ 	handle = ext4_journal_start(inode, EXT4_HT_TRUNCATE, credits);
+@@ -4614,7 +4539,7 @@ int ext4_truncate(struct inode *inode)
+ 	}
+ 
+ 	if (ext4_test_inode_flag(inode, EXT4_INODE_EXTENTS))
+-		credits = ext4_chunk_trans_extent(inode, 1);
++		credits = ext4_writepage_trans_blocks(inode);
+ 	else
+ 		credits = ext4_blocks_for_truncate(inode);
+ 
+@@ -5182,7 +5107,7 @@ static int check_igot_inode(struct inode *inode, ext4_iget_flags flags,
  	return -EFSCORRUPTED;
  }
  
@@ -7519,7 +7905,7 @@ index 0f316632b8dd..be9a4cba35fd 100644
  {
  	struct super_block *sb = inode->i_sb;
  
-@@ -5124,22 +5123,6 @@ static bool ext4_should_enable_large_folio(struct inode *inode)
+@@ -5199,22 +5124,6 @@ static bool ext4_should_enable_large_folio(struct inode *inode)
  	return true;
  }
  
@@ -7542,7 +7928,7 @@ index 0f316632b8dd..be9a4cba35fd 100644
  struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
  			  ext4_iget_flags flags, const char *function,
  			  unsigned int line)
-@@ -5457,8 +5440,8 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
+@@ -5532,8 +5441,8 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
  		ret = -EFSCORRUPTED;
  		goto bad_inode;
  	}
@@ -7553,7 +7939,7 @@ index 0f316632b8dd..be9a4cba35fd 100644
  
  	ret = check_igot_inode(inode, flags, function, line);
  	/*
-@@ -6156,7 +6139,7 @@ int ext4_meta_trans_blocks(struct inode *inode, int lblocks, int pextents)
+@@ -6231,7 +6140,7 @@ int ext4_meta_trans_blocks(struct inode *inode, int lblocks, int pextents)
  	int ret;
  
  	/*
@@ -7562,7 +7948,7 @@ index 0f316632b8dd..be9a4cba35fd 100644
  	 * logical blocks to @pextents physical extents?
  	 */
  	idxblocks = ext4_index_trans_blocks(inode, lblocks, pextents);
-@@ -6165,7 +6148,7 @@ int ext4_meta_trans_blocks(struct inode *inode, int lblocks, int pextents)
+@@ -6240,7 +6149,7 @@ int ext4_meta_trans_blocks(struct inode *inode, int lblocks, int pextents)
  	 * Now let's see how many group bitmaps and group descriptors need
  	 * to account
  	 */
@@ -7571,183 +7957,285 @@ index 0f316632b8dd..be9a4cba35fd 100644
  	gdpblocks = groups;
  	if (groups > ngroups)
  		groups = ngroups;
-diff --git a/fs/ext4/mballoc-test.c b/fs/ext4/mballoc-test.c
-index f018bc8424c7..d634c12f1984 100644
---- a/fs/ext4/mballoc-test.c
-+++ b/fs/ext4/mballoc-test.c
-@@ -155,7 +155,6 @@ static struct super_block *mbt_ext4_alloc_super_block(void)
- 	bgl_lock_init(sbi->s_blockgroup_lock);
- 
- 	sbi->s_es = &fsb->es;
--	sbi->s_sb = sb;
- 	sb->s_fs_info = sbi;
- 
- 	up_write(&sb->s_umount);
-@@ -803,10 +802,6 @@ static void test_mb_mark_used(struct kunit *test)
- 	KUNIT_ASSERT_EQ(test, ret, 0);
- 
- 	grp->bb_free = EXT4_CLUSTERS_PER_GROUP(sb);
--	grp->bb_largest_free_order = -1;
--	grp->bb_avg_fragment_size_order = -1;
--	INIT_LIST_HEAD(&grp->bb_largest_free_order_node);
--	INIT_LIST_HEAD(&grp->bb_avg_fragment_size_node);
- 	mbt_generate_test_ranges(sb, ranges, TEST_RANGE_COUNT);
- 	for (i = 0; i < TEST_RANGE_COUNT; i++)
- 		test_mb_mark_used_range(test, &e4b, ranges[i].start,
-@@ -880,10 +875,6 @@ static void test_mb_free_blocks(struct kunit *test)
- 	ext4_unlock_group(sb, TEST_GOAL_GROUP);
- 
- 	grp->bb_free = 0;
--	grp->bb_largest_free_order = -1;
--	grp->bb_avg_fragment_size_order = -1;
--	INIT_LIST_HEAD(&grp->bb_largest_free_order_node);
--	INIT_LIST_HEAD(&grp->bb_avg_fragment_size_node);
- 	memset(bitmap, 0xff, sb->s_blocksize);
- 
- 	mbt_generate_test_ranges(sb, ranges, TEST_RANGE_COUNT);
-diff --git a/fs/ext4/mballoc.c b/fs/ext4/mballoc.c
-index fb7093ea3023..1e98c5be4e0a 100644
---- a/fs/ext4/mballoc.c
-+++ b/fs/ext4/mballoc.c
-@@ -841,30 +841,30 @@ static void
- mb_update_avg_fragment_size(struct super_block *sb, struct ext4_group_info *grp)
- {
- 	struct ext4_sb_info *sbi = EXT4_SB(sb);
--	int new, old;
-+	int new_order;
- 
--	if (!test_opt2(sb, MB_OPTIMIZE_SCAN))
-+	if (!test_opt2(sb, MB_OPTIMIZE_SCAN) || grp->bb_fragments == 0)
- 		return;
- 
--	old = grp->bb_avg_fragment_size_order;
--	new = grp->bb_fragments == 0 ? -1 :
--	      mb_avg_fragment_size_order(sb, grp->bb_free / grp->bb_fragments);
--	if (new == old)
-+	new_order = mb_avg_fragment_size_order(sb,
-+					grp->bb_free / grp->bb_fragments);
-+	if (new_order == grp->bb_avg_fragment_size_order)
- 		return;
- 
--	if (old >= 0) {
--		write_lock(&sbi->s_mb_avg_fragment_size_locks[old]);
-+	if (grp->bb_avg_fragment_size_order != -1) {
-+		write_lock(&sbi->s_mb_avg_fragment_size_locks[
-+					grp->bb_avg_fragment_size_order]);
- 		list_del(&grp->bb_avg_fragment_size_node);
--		write_unlock(&sbi->s_mb_avg_fragment_size_locks[old]);
--	}
--
--	grp->bb_avg_fragment_size_order = new;
--	if (new >= 0) {
--		write_lock(&sbi->s_mb_avg_fragment_size_locks[new]);
--		list_add_tail(&grp->bb_avg_fragment_size_node,
--				&sbi->s_mb_avg_fragment_size[new]);
--		write_unlock(&sbi->s_mb_avg_fragment_size_locks[new]);
-+		write_unlock(&sbi->s_mb_avg_fragment_size_locks[
-+					grp->bb_avg_fragment_size_order]);
- 	}
-+	grp->bb_avg_fragment_size_order = new_order;
-+	write_lock(&sbi->s_mb_avg_fragment_size_locks[
-+					grp->bb_avg_fragment_size_order]);
-+	list_add_tail(&grp->bb_avg_fragment_size_node,
-+		&sbi->s_mb_avg_fragment_size[grp->bb_avg_fragment_size_order]);
-+	write_unlock(&sbi->s_mb_avg_fragment_size_locks[
-+					grp->bb_avg_fragment_size_order]);
+@@ -6257,19 +6166,25 @@ int ext4_meta_trans_blocks(struct inode *inode, int lblocks, int pextents)
  }
  
  /*
-@@ -1150,28 +1150,33 @@ static void
- mb_set_largest_free_order(struct super_block *sb, struct ext4_group_info *grp)
+- * Calculate the journal credits for modifying the number of blocks
+- * in a single extent within one transaction. 'nrblocks' is used only
+- * for non-extent inodes. For extent type inodes, 'nrblocks' can be
+- * zero if the exact number of blocks is unknown.
++ * Calculate the total number of credits to reserve to fit
++ * the modification of a single pages into a single transaction,
++ * which may include multiple chunks of block allocations.
++ *
++ * This could be called via ext4_write_begin()
++ *
++ * We need to consider the worse case, when
++ * one new block per extent.
+  */
+-int ext4_chunk_trans_extent(struct inode *inode, int nrblocks)
++int ext4_writepage_trans_blocks(struct inode *inode)
  {
- 	struct ext4_sb_info *sbi = EXT4_SB(sb);
--	int new, old = grp->bb_largest_free_order;
-+	int i;
++	int bpp = ext4_journal_blocks_per_folio(inode);
+ 	int ret;
  
--	for (new = MB_NUM_ORDERS(sb) - 1; new >= 0; new--)
--		if (grp->bb_counters[new] > 0)
-+	for (i = MB_NUM_ORDERS(sb) - 1; i >= 0; i--)
-+		if (grp->bb_counters[i] > 0)
- 			break;
+-	ret = ext4_meta_trans_blocks(inode, nrblocks, 1);
++	ret = ext4_meta_trans_blocks(inode, bpp, bpp);
++
+ 	/* Account for data blocks for journalled mode */
+ 	if (ext4_should_journal_data(inode))
+-		ret += nrblocks;
++		ret += bpp;
+ 	return ret;
+ }
+ 
+@@ -6641,55 +6556,6 @@ static int ext4_bh_unmapped(handle_t *handle, struct inode *inode,
+ 	return !buffer_mapped(bh);
+ }
+ 
+-static int ext4_block_page_mkwrite(struct inode *inode, struct folio *folio,
+-				   get_block_t get_block)
+-{
+-	handle_t *handle;
+-	loff_t size;
+-	unsigned long len;
+-	int credits;
+-	int ret;
 -
- 	/* No need to move between order lists? */
--	if (new == old)
-+	if (!test_opt2(sb, MB_OPTIMIZE_SCAN) ||
-+	    i == grp->bb_largest_free_order) {
-+		grp->bb_largest_free_order = i;
- 		return;
+-	credits = ext4_chunk_trans_extent(inode,
+-			ext4_journal_blocks_per_folio(inode));
+-	handle = ext4_journal_start(inode, EXT4_HT_WRITE_PAGE, credits);
+-	if (IS_ERR(handle))
+-		return PTR_ERR(handle);
+-
+-	folio_lock(folio);
+-	size = i_size_read(inode);
+-	/* Page got truncated from under us? */
+-	if (folio->mapping != inode->i_mapping || folio_pos(folio) > size) {
+-		ret = -EFAULT;
+-		goto out_error;
+-	}
+-
+-	len = folio_size(folio);
+-	if (folio_pos(folio) + len > size)
+-		len = size - folio_pos(folio);
+-
+-	ret = ext4_block_write_begin(handle, folio, 0, len, get_block);
+-	if (ret)
+-		goto out_error;
+-
+-	if (!ext4_should_journal_data(inode)) {
+-		block_commit_write(folio, 0, len);
+-		folio_mark_dirty(folio);
+-	} else {
+-		ret = ext4_journal_folio_buffers(handle, folio, len);
+-		if (ret)
+-			goto out_error;
+-	}
+-	ext4_journal_stop(handle);
+-	folio_wait_stable(folio);
+-	return ret;
+-
+-out_error:
+-	folio_unlock(folio);
+-	ext4_journal_stop(handle);
+-	return ret;
+-}
+-
+ vm_fault_t ext4_page_mkwrite(struct vm_fault *vmf)
+ {
+ 	struct vm_area_struct *vma = vmf->vma;
+@@ -6701,7 +6567,8 @@ vm_fault_t ext4_page_mkwrite(struct vm_fault *vmf)
+ 	struct file *file = vma->vm_file;
+ 	struct inode *inode = file_inode(file);
+ 	struct address_space *mapping = inode->i_mapping;
+-	get_block_t *get_block = ext4_get_block;
++	handle_t *handle;
++	get_block_t *get_block;
+ 	int retries = 0;
+ 
+ 	if (unlikely(IS_IMMUTABLE(inode)))
+@@ -6769,11 +6636,47 @@ vm_fault_t ext4_page_mkwrite(struct vm_fault *vmf)
+ 	/* OK, we need to fill the hole... */
+ 	if (ext4_should_dioread_nolock(inode))
+ 		get_block = ext4_get_block_unwritten;
++	else
++		get_block = ext4_get_block;
+ retry_alloc:
+-	/* Start journal and allocate blocks */
+-	err = ext4_block_page_mkwrite(inode, folio, get_block);
+-	if (err == -EAGAIN ||
+-	    (err == -ENOSPC && ext4_should_retry_alloc(inode->i_sb, &retries)))
++	handle = ext4_journal_start(inode, EXT4_HT_WRITE_PAGE,
++				    ext4_writepage_trans_blocks(inode));
++	if (IS_ERR(handle)) {
++		ret = VM_FAULT_SIGBUS;
++		goto out;
 +	}
- 
--	if (old >= 0 && !list_empty(&grp->bb_largest_free_order_node)) {
--		write_lock(&sbi->s_mb_largest_free_orders_locks[old]);
-+	if (grp->bb_largest_free_order >= 0) {
-+		write_lock(&sbi->s_mb_largest_free_orders_locks[
-+					      grp->bb_largest_free_order]);
- 		list_del_init(&grp->bb_largest_free_order_node);
--		write_unlock(&sbi->s_mb_largest_free_orders_locks[old]);
-+		write_unlock(&sbi->s_mb_largest_free_orders_locks[
-+					      grp->bb_largest_free_order]);
- 	}
--
--	grp->bb_largest_free_order = new;
--	if (test_opt2(sb, MB_OPTIMIZE_SCAN) && new >= 0 && grp->bb_free) {
--		write_lock(&sbi->s_mb_largest_free_orders_locks[new]);
-+	grp->bb_largest_free_order = i;
-+	if (grp->bb_largest_free_order >= 0 && grp->bb_free) {
-+		write_lock(&sbi->s_mb_largest_free_orders_locks[
-+					      grp->bb_largest_free_order]);
- 		list_add_tail(&grp->bb_largest_free_order_node,
--			      &sbi->s_mb_largest_free_orders[new]);
--		write_unlock(&sbi->s_mb_largest_free_orders_locks[new]);
-+		      &sbi->s_mb_largest_free_orders[grp->bb_largest_free_order]);
-+		write_unlock(&sbi->s_mb_largest_free_orders_locks[
-+					      grp->bb_largest_free_order]);
- 	}
- }
- 
-diff --git a/fs/ext4/page-io.c b/fs/ext4/page-io.c
-index 3d8b0f6d2dea..179e54f3a3b6 100644
---- a/fs/ext4/page-io.c
-+++ b/fs/ext4/page-io.c
-@@ -236,12 +236,10 @@ static void dump_completed_IO(struct inode *inode, struct list_head *head)
- 
- static bool ext4_io_end_defer_completion(ext4_io_end_t *io_end)
- {
--	if (io_end->flag & EXT4_IO_END_UNWRITTEN &&
--	    !list_empty(&io_end->list_vec))
-+	if (io_end->flag & EXT4_IO_END_UNWRITTEN)
- 		return true;
- 	if (test_opt(io_end->inode->i_sb, DATA_ERR_ABORT) &&
--	    io_end->flag & EXT4_IO_END_FAILED &&
--	    !ext4_emergency_state(io_end->inode->i_sb))
-+	    io_end->flag & EXT4_IO_END_FAILED)
- 		return true;
- 	return false;
- }
-@@ -258,7 +256,6 @@ static void ext4_add_complete_io(ext4_io_end_t *io_end)
- 	WARN_ON(!(io_end->flag & EXT4_IO_END_DEFER_COMPLETION));
- 	WARN_ON(io_end->flag & EXT4_IO_END_UNWRITTEN &&
- 		!io_end->handle && sbi->s_journal);
--	WARN_ON(!io_end->bio);
- 
- 	spin_lock_irqsave(&ei->i_completed_io_lock, flags);
- 	wq = sbi->rsv_conversion_wq;
-@@ -321,9 +318,12 @@ ext4_io_end_t *ext4_init_io_end(struct inode *inode, gfp_t flags)
- void ext4_put_io_end_defer(ext4_io_end_t *io_end)
- {
- 	if (refcount_dec_and_test(&io_end->count)) {
--		if (ext4_io_end_defer_completion(io_end))
--			return ext4_add_complete_io(io_end);
--
-+		if (io_end->flag & EXT4_IO_END_FAILED ||
-+		    (io_end->flag & EXT4_IO_END_UNWRITTEN &&
-+		     !list_empty(&io_end->list_vec))) {
-+			ext4_add_complete_io(io_end);
-+			return;
++	/*
++	 * Data journalling can't use block_page_mkwrite() because it
++	 * will set_buffer_dirty() before do_journal_get_write_access()
++	 * thus might hit warning messages for dirty metadata buffers.
++	 */
++	if (!ext4_should_journal_data(inode)) {
++		err = block_page_mkwrite(vma, vmf, get_block);
++	} else {
++		folio_lock(folio);
++		size = i_size_read(inode);
++		/* Page got truncated from under us? */
++		if (folio->mapping != mapping || folio_pos(folio) > size) {
++			ret = VM_FAULT_NOPAGE;
++			goto out_error;
 +		}
- 		ext4_release_io_end(io_end);
- 	}
++
++		len = folio_size(folio);
++		if (folio_pos(folio) + len > size)
++			len = size - folio_pos(folio);
++
++		err = ext4_block_write_begin(handle, folio, 0, len,
++					     ext4_get_block);
++		if (!err) {
++			ret = VM_FAULT_SIGBUS;
++			if (ext4_journal_folio_buffers(handle, folio, len))
++				goto out_error;
++		} else {
++			folio_unlock(folio);
++		}
++	}
++	ext4_journal_stop(handle);
++	if (err == -ENOSPC && ext4_should_retry_alloc(inode->i_sb, &retries))
+ 		goto retry_alloc;
+ out_ret:
+ 	ret = vmf_fs_error(err);
+@@ -6781,4 +6684,8 @@ vm_fault_t ext4_page_mkwrite(struct vm_fault *vmf)
+ 	filemap_invalidate_unlock_shared(mapping);
+ 	sb_end_pagefault(inode->i_sb);
+ 	return ret;
++out_error:
++	folio_unlock(folio);
++	ext4_journal_stop(handle);
++	goto out;
  }
+diff --git a/fs/ext4/move_extent.c b/fs/ext4/move_extent.c
+index adae3caf175a..1f8493a56e8f 100644
+--- a/fs/ext4/move_extent.c
++++ b/fs/ext4/move_extent.c
+@@ -280,8 +280,7 @@ move_extent_per_page(struct file *o_filp, struct inode *donor_inode,
+ 	 */
+ again:
+ 	*err = 0;
+-	jblocks = ext4_meta_trans_blocks(orig_inode, block_len_in_page,
+-					 block_len_in_page) * 2;
++	jblocks = ext4_writepage_trans_blocks(orig_inode) * 2;
+ 	handle = ext4_journal_start(orig_inode, EXT4_HT_MOVE_EXTENTS, jblocks);
+ 	if (IS_ERR(handle)) {
+ 		*err = PTR_ERR(handle);
+diff --git a/fs/ext4/xattr.c b/fs/ext4/xattr.c
+index 3fb93247330d..8d15acbacc20 100644
+--- a/fs/ext4/xattr.c
++++ b/fs/ext4/xattr.c
+@@ -962,7 +962,7 @@ int __ext4_xattr_set_credits(struct super_block *sb, struct inode *inode,
+ 	 * so we need to reserve credits for this eventuality
+ 	 */
+ 	if (inode && ext4_has_inline_data(inode))
+-		credits += ext4_chunk_trans_extent(inode, 1) + 1;
++		credits += ext4_writepage_trans_blocks(inode) + 1;
+ 
+ 	/* We are done if ea_inode feature is not enabled. */
+ 	if (!ext4_has_feature_ea_inode(sb))
+diff --git a/include/trace/events/ext4.h b/include/trace/events/ext4.h
+index 845451077c41..156908641e68 100644
+--- a/include/trace/events/ext4.h
++++ b/include/trace/events/ext4.h
+@@ -482,17 +482,16 @@ TRACE_EVENT(ext4_writepages,
+ 		  (unsigned long) __entry->writeback_index)
+ );
+ 
+-TRACE_EVENT(ext4_da_write_folios_start,
+-	TP_PROTO(struct inode *inode, loff_t start_pos, loff_t next_pos,
++TRACE_EVENT(ext4_da_write_pages,
++	TP_PROTO(struct inode *inode, pgoff_t first_page,
+ 		 struct writeback_control *wbc),
+ 
+-	TP_ARGS(inode, start_pos, next_pos, wbc),
++	TP_ARGS(inode, first_page, wbc),
+ 
+ 	TP_STRUCT__entry(
+ 		__field(	dev_t,	dev			)
+ 		__field(	ino_t,	ino			)
+-		__field(       loff_t,	start_pos		)
+-		__field(       loff_t,	next_pos		)
++		__field(      pgoff_t,	first_page		)
+ 		__field(	 long,	nr_to_write		)
+ 		__field(	  int,	sync_mode		)
+ 	),
+@@ -500,48 +499,18 @@ TRACE_EVENT(ext4_da_write_folios_start,
+ 	TP_fast_assign(
+ 		__entry->dev		= inode->i_sb->s_dev;
+ 		__entry->ino		= inode->i_ino;
+-		__entry->start_pos	= start_pos;
+-		__entry->next_pos	= next_pos;
++		__entry->first_page	= first_page;
+ 		__entry->nr_to_write	= wbc->nr_to_write;
+ 		__entry->sync_mode	= wbc->sync_mode;
+ 	),
+ 
+-	TP_printk("dev %d,%d ino %lu start_pos 0x%llx next_pos 0x%llx nr_to_write %ld sync_mode %d",
++	TP_printk("dev %d,%d ino %lu first_page %lu nr_to_write %ld "
++		  "sync_mode %d",
+ 		  MAJOR(__entry->dev), MINOR(__entry->dev),
+-		  (unsigned long) __entry->ino, __entry->start_pos, __entry->next_pos,
++		  (unsigned long) __entry->ino, __entry->first_page,
+ 		  __entry->nr_to_write, __entry->sync_mode)
+ );
+ 
+-TRACE_EVENT(ext4_da_write_folios_end,
+-	TP_PROTO(struct inode *inode, loff_t start_pos, loff_t next_pos,
+-		 struct writeback_control *wbc, int ret),
+-
+-	TP_ARGS(inode, start_pos, next_pos, wbc, ret),
+-
+-	TP_STRUCT__entry(
+-		__field(	dev_t,	dev			)
+-		__field(	ino_t,	ino			)
+-		__field(       loff_t,	start_pos		)
+-		__field(       loff_t,	next_pos		)
+-		__field(	 long,	nr_to_write		)
+-		__field(	  int,	ret			)
+-	),
+-
+-	TP_fast_assign(
+-		__entry->dev		= inode->i_sb->s_dev;
+-		__entry->ino		= inode->i_ino;
+-		__entry->start_pos	= start_pos;
+-		__entry->next_pos	= next_pos;
+-		__entry->nr_to_write	= wbc->nr_to_write;
+-		__entry->ret		= ret;
+-	),
+-
+-	TP_printk("dev %d,%d ino %lu start_pos 0x%llx next_pos 0x%llx nr_to_write %ld ret %d",
+-		  MAJOR(__entry->dev), MINOR(__entry->dev),
+-		  (unsigned long) __entry->ino, __entry->start_pos, __entry->next_pos,
+-		  __entry->nr_to_write, __entry->ret)
+-);
+-
+ TRACE_EVENT(ext4_da_write_pages_extent,
+ 	TP_PROTO(struct inode *inode, struct ext4_map_blocks *map),
+ 
+diff --git a/net/sunrpc/sched.c b/net/sunrpc/sched.c
+index 73bc39281ef5..9b45fbdc90ca 100644
+--- a/net/sunrpc/sched.c
++++ b/net/sunrpc/sched.c
+@@ -276,8 +276,6 @@ EXPORT_SYMBOL_GPL(rpc_destroy_wait_queue);
+ 
+ static int rpc_wait_bit_killable(struct wait_bit_key *key, int mode)
+ {
+-	if (unlikely(current->flags & PF_EXITING))
+-		return -EINTR;
+ 	schedule();
+ 	if (signal_pending_state(mode, current))
+ 		return -ERESTARTSYS;
 -- 
-2.50.1
+2.51.0
 
