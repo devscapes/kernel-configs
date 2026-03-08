@@ -1,7 +1,8 @@
 #
 # Modules should not be force-(un)loaded, neither should be loading ones with
-# namespaced symbols that are missing at one point
+# mismatched split BTF nor missing namespaced symbols
 #
+# CONFIG_MODULE_ALLOW_BTF_MISMATCH is not set
 # CONFIG_MODULE_ALLOW_MISSING_NAMESPACE_IMPORTS is not set
 # CONFIG_MODULE_FORCE_LOAD is not set
 # CONFIG_MODULE_FORCE_UNLOAD is not set
@@ -13,6 +14,11 @@
 # CONFIG_MODULE_SIG_SHA512 is not set
 CONFIG_MODULE_SIG_HASH="sha3-512"
 CONFIG_MODULE_SIG_SHA3_512=y
+
+#
+# Enforce kernel module signature verification
+#
+CONFIG_MODULE_SIG_FORCE=y
 
 # Incorporate parts of the Kernel Self Protection Project's recommended
 # settings, maintained by Linux Kernel Security team.
@@ -39,6 +45,8 @@ CONFIG_MODULE_SIG_SHA3_512=y
 # CONFIG_LEGACY_TIOCSTI is not set
 # CONFIG_LEGACY_VSYSCALL_XONLY is not set
 # CONFIG_PROC_KCORE is not set
+# CONFIG_PROC_MEM_ALWAYS_FORCE is not set
+# CONFIG_PROC_MEM_NO_FORCE is not set
 # CONFIG_SLAB_MERGE_DEFAULT is not set
 # CONFIG_TEST_DEBUG_VIRTUAL is not set
 # CONFIG_TEST_UBSAN is not set
@@ -52,7 +60,7 @@ CONFIG_MODULE_SIG_SHA3_512=y
 # CONFIG_X86_VSYSCALL_EMULATION is not set
 CONFIG_AMD_IOMMU=y
 CONFIG_BUG_ON_DATA_CORRUPTION=y
-CONFIG_CMDLINE="page_alloc.shuffle=1 pti=on slub_debug=ZF"
+CONFIG_CMDLINE="hash_pointers=always page_alloc.shuffle=1 pti=on slub_debug=ZF"
 CONFIG_CMDLINE_BOOL=y
 CONFIG_DEBUG_LIST=y
 CONFIG_DEBUG_NOTIFIERS=y
@@ -87,6 +95,7 @@ CONFIG_PAGE_TABLE_CHECK_ENFORCED=y
 CONFIG_PANIC_ON_OOPS=y
 CONFIG_PANIC_ON_OOPS_VALUE=1
 CONFIG_PANIC_TIMEOUT=-1
+CONFIG_PROC_MEM_FORCE_PTRACE=y
 CONFIG_RANDOMIZE_BASE=y
 CONFIG_RANDOMIZE_KSTACK_OFFSET_DEFAULT=y
 CONFIG_RANDOMIZE_MEMORY=y
@@ -119,7 +128,7 @@ CONFIG_ZERO_CALL_USED_REGS=y
 
 #
 # While forcing confidentiality mode for "lockdown" LSM is recommended, this
-# breaks use of scx_scheds because it needs BPF read access
+# breaks programs that need BPF read access: scx-scheds, systemd's restrict-fs
 #
 # CONFIG_LOCK_DOWN_KERNEL_FORCE_CONFIDENTIALITY is not set
 # CONFIG_LOCK_DOWN_KERNEL_FORCE_NONE is not set
