@@ -1,5 +1,5 @@
 diff --git a/linux-cachyos/PKGBUILD b/linux-cachyos/PKGBUILD
-index d0a100ac..9127f4e8 100644
+index fc4accf1..9945ea93 100644
 --- a/linux-cachyos/PKGBUILD
 +++ b/linux-cachyos/PKGBUILD
 @@ -149,6 +149,9 @@
@@ -12,6 +12,15 @@ index d0a100ac..9127f4e8 100644
  # ATTENTION: Do not modify after this line
  _is_lto_kernel() {
      [[ "$_use_llvm_lto" = "thin" || "$_use_llvm_lto" = "full"  || "$_use_llvm_lto" = "thin-dist" ]]
+@@ -175,7 +178,7 @@ _minor=6
+ #_rcver=rc8
+ pkgver=${_major}.${_minor}
+ _tagrel=1
+-pkgrel=1
++pkgrel=2
+ #_stable=${_major}.${_minor}
+ _stable=${_major}
+ #_stablerc=${_major}-${_rcver}
 @@ -212,9 +215,13 @@ source=(
      "https://github.com/CachyOS/linux/releases/download/${_srctag}/${_srctag}.tar.gz"
      "config")
@@ -49,6 +58,15 @@ index d0a100ac..9127f4e8 100644
  fi
  
  if [ "$_build_r8125" = "yes" ]; then
+@@ -264,7 +271,7 @@ fi
+ 
+ ## List of CachyOS schedulers
+ case "$_cpusched" in
+-    bore|rt-bore|hardened) # CachyOS Scheduler (BORE)
++    bore|rt-bore|hardened)
+         source+=("${_patchsource}/sched/0001-bore-cachy.patch");;&
+     bmq) ## Project C Scheduler
+         source+=("${_patchsource}/sched/0001-prjc-cachy.patch");;
 @@ -279,6 +286,7 @@ export KBUILD_BUILD_USER="$pkgbase"
  export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
  
@@ -66,6 +84,18 @@ index d0a100ac..9127f4e8 100644
  
      ### Select CPU optimization
      if [ -n "$_processor_opt" ]; then
+@@ -324,9 +332,9 @@ prepare() {
+ 
+     ### Selecting the CPU scheduler
+     case "$_cpusched" in
+-        cachyos|bore|hardened) scripts/config -e SCHED_BORE;;
++        bore|hardened) scripts/config -e SCHED_BORE;;
+         bmq) scripts/config -e SCHED_ALT -e SCHED_BMQ;;
+-        eevdf) ;;
++        cachyos|eevdf) ;;
+         rt) scripts/config -e PREEMPT_RT;;
+         rt-bore) scripts/config -e SCHED_BORE -e PREEMPT_RT;;
+         *) _die "The value $_cpusched is invalid. Choose the correct one again.";;
 @@ -487,7 +495,7 @@ prepare() {
      if [ "$_localmodcfg" = "yes" ]; then
          if [ -e "$_localmodcfg_path" ]; then
@@ -199,10 +229,10 @@ index d0a100ac..9127f4e8 100644
  b2sums=('a0885a688e8ea83da755115a86926134f8795b93c7d2eb1c00baff521ed10ba0aeb2691ad26454da20f2cecb169b6d655705b7e11fa6d108428ca1d2c0e5d696'
          'b55556d1ebec83a529359f74e7231d48d85066be80a472591c3e8c8f258050ce3132e277e367f793d0d93896224ec4bd6e0ebf3fdb0ae674b23141d66802dc16'
 -        'ea26c88950fc06b6ffab93b30e3beacc7d26571a70262334ca8b001dc7899bf96b47d703fbaa7f4e47765c3dafccc23c58a4d4da2169b8ee50012afcb7a1dd96')
-+        '3e2b8f8bfbaf7acb823376b5dbded67dca84bb003ea84917e3ec55a03549764f698642fe7feb933c8e73917e284fca68c1676780bfff361dff0f2212281ca99a'
++        '5ebe5ea2840979ca5bd54919f43916dc4ce54f612f8f8580eb3e5a04d834ba3f64a52af9d1ee6aa78aceaf82191f7676b19b4fb4b61bfbda49a07c3493d8a803'
 +        'd884b1cbf3aa605d6375c3fb8095b9a65bc28d9f7aef2088a45b76df7c5a393ad68767878bbf93b5c5ffd87063df10d670e1f145945c2d6c2132c8dc12d1f30c'
 +        'ea26c88950fc06b6ffab93b30e3beacc7d26571a70262334ca8b001dc7899bf96b47d703fbaa7f4e47765c3dafccc23c58a4d4da2169b8ee50012afcb7a1dd96'
 +        'b64931b5fcf47fab636232a94abcd107f4faae80cb9282e8aa5cfbb1a9fb113ef382843e4122225e735308f616e2cd4e7447ed1279eae2bd8f7705c19b7e4125'
-+        '7237770166b77479fc932d22910787718439171c7f85129848069f63f032ce0c87246850a1422c19e80e8e8ab9267e9a26eb4ea2cd2dc74e543a509154a735af'
-+        '489df32365e3e291ce7d331d818b1de564da4221cba6009dbe1d57caa1f0c5e950944a728bcfc408b18845e8033e9492692b6e83a9eeadf00262f6ebb662c708'
-+        '226c64dd989ec0c4c444d048707e5d56be4a7ffa59ada31f197015c65a87e7935c8a0a1d6a9d35947e60f90505e5cffb3df9824aec71b2f188bcaa2e89403e0b')
++        'e7e06521b34da15ee30a5466353265048433c7070012f3d4b12412dd0b51bb2dad89283fae9815c978943adbc391ca897c3eaeb5eca50ab964281bebce63bedf'
++        '6d6f1d861e72aa4a55bb6c6552a962ef39a259a959a1254deb96d89d79745f633b0307cb66af488862038856973839eae58176df4d6b50a25f9b26b6c6fac6b0'
++        '1f19f560470887c3236c33a7ed23f43e05a4c1ff7f3cd939e01979596bf8504926a9c30dda2470b72fde3f05d6eeae834128e9fb4cc63dde2f839005cddcf7c3')
