@@ -1,8 +1,8 @@
 diff --git a/linux-cachyos/PKGBUILD b/linux-cachyos/PKGBUILD
-index fc4accf1..9945ea93 100644
+index a0cc3d4b..2be02a9a 100644
 --- a/linux-cachyos/PKGBUILD
 +++ b/linux-cachyos/PKGBUILD
-@@ -149,6 +149,9 @@
+@@ -154,6 +154,9 @@
  # Enable this after the profiles have been generated
  : "${_propeller_profiles:=no}"
  
@@ -12,17 +12,8 @@ index fc4accf1..9945ea93 100644
  # ATTENTION: Do not modify after this line
  _is_lto_kernel() {
      [[ "$_use_llvm_lto" = "thin" || "$_use_llvm_lto" = "full"  || "$_use_llvm_lto" = "thin-dist" ]]
-@@ -175,7 +178,7 @@ _minor=6
- #_rcver=rc8
- pkgver=${_major}.${_minor}
- _tagrel=1
--pkgrel=1
-+pkgrel=2
- #_stable=${_major}.${_minor}
- _stable=${_major}
- #_stablerc=${_major}-${_rcver}
-@@ -212,9 +215,13 @@ source=(
-     "https://github.com/CachyOS/linux/releases/download/${_srctag}/${_srctag}.tar.gz"
+@@ -219,9 +222,13 @@ source=(
+     "https://github.com/CachyOS/linux/releases/download/${_srcname}/${_srcname}.tar.gz"
      "config")
  
 +source+=("file://${PWD}/kernel-configs/0101-kernel-patches.patch"
@@ -36,7 +27,7 @@ index fc4accf1..9945ea93 100644
      source+=("${_patchsource}/misc/dkms-clang.patch")
      BUILD_FLAGS=(
          CC=clang
-@@ -245,8 +252,8 @@ fi
+@@ -253,8 +260,8 @@ fi
  
  # Use generated AutoFDO Profile
  if [ "$_autofdo" = "yes" ] && [ -n "$_autofdo_profile_name" ]; then
@@ -47,7 +38,7 @@ index fc4accf1..9945ea93 100644
      else
          _die "Failed to find file ${_autofdo_profile_name}"
      fi
-@@ -254,8 +261,8 @@ fi
+@@ -262,8 +269,8 @@ fi
  
  # Use generated Propeller Profile
  if [ "$_propeller" = "yes" ] && [ "$_propeller_profiles" = "yes" ]; then
@@ -58,7 +49,7 @@ index fc4accf1..9945ea93 100644
  fi
  
  if [ "$_build_r8125" = "yes" ]; then
-@@ -264,7 +271,7 @@ fi
+@@ -272,7 +279,7 @@ fi
  
  ## List of CachyOS schedulers
  case "$_cpusched" in
@@ -67,7 +58,7 @@ index fc4accf1..9945ea93 100644
          source+=("${_patchsource}/sched/0001-bore-cachy.patch");;&
      bmq) ## Project C Scheduler
          source+=("${_patchsource}/sched/0001-prjc-cachy.patch");;
-@@ -279,6 +286,7 @@ export KBUILD_BUILD_USER="$pkgbase"
+@@ -287,6 +294,7 @@ export KBUILD_BUILD_USER="$pkgbase"
  export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
  
  _die() { error "$@" ; exit 1; }
@@ -75,7 +66,15 @@ index fc4accf1..9945ea93 100644
  
  prepare() {
      cd "$_srcname"
-@@ -300,7 +308,7 @@ prepare() {
+@@ -294,6 +302,7 @@ prepare() {
+     echo "Setting version..."
+     echo "-$pkgrel" > localversion.10-pkgrel
+     echo "${pkgbase#linux}" > localversion.20-pkgname
++    echo "-exp" > localversion.99-exp
+ 
+     local src
+     for patch in "${source[@]}"; do
+@@ -310,7 +319,7 @@ prepare() {
      done
  
      echo "Setting config..."
@@ -84,7 +83,7 @@ index fc4accf1..9945ea93 100644
  
      ### Select CPU optimization
      if [ -n "$_processor_opt" ]; then
-@@ -324,9 +332,9 @@ prepare() {
+@@ -334,9 +343,9 @@ prepare() {
  
      ### Selecting the CPU scheduler
      case "$_cpusched" in
@@ -96,7 +95,7 @@ index fc4accf1..9945ea93 100644
          rt) scripts/config -e PREEMPT_RT;;
          rt-bore) scripts/config -e SCHED_BORE -e PREEMPT_RT;;
          *) _die "The value $_cpusched is invalid. Choose the correct one again.";;
-@@ -487,7 +495,7 @@ prepare() {
+@@ -492,7 +501,7 @@ prepare() {
      if [ "$_localmodcfg" = "yes" ]; then
          if [ -e "$_localmodcfg_path" ]; then
              echo "Running Steven Rostedt's make localmodconfig now"
@@ -105,7 +104,7 @@ index fc4accf1..9945ea93 100644
          else
              _die "No modprobed.db data found"
          fi
-@@ -495,19 +503,19 @@ prepare() {
+@@ -500,19 +509,19 @@ prepare() {
  
      ### Rewrite configuration
      echo "Rewrite configuration..."
@@ -130,7 +129,7 @@ index fc4accf1..9945ea93 100644
  
      ### Save configuration for later reuse
      echo "Save configuration for later reuse..."
-@@ -544,10 +552,10 @@ _sign_modules() {
+@@ -543,10 +552,10 @@ _sign_modules() {
  
  build() {
      cd "$_srcname"
@@ -143,7 +142,7 @@ index fc4accf1..9945ea93 100644
      fi
  
      local MODULE_FLAGS=(
-@@ -560,7 +568,7 @@ build() {
+@@ -559,7 +568,7 @@ build() {
      if [ "$_build_nvidia_open" = "yes" ]; then
          cd "${srcdir}/${_nv_open_pkg}"
          MODULE_FLAGS+=(IGNORE_CC_MISMATCH=yes)
@@ -152,7 +151,7 @@ index fc4accf1..9945ea93 100644
      fi
  
      if [ "$_build_zfs" = "yes" ]; then
-@@ -575,12 +583,12 @@ build() {
+@@ -574,12 +583,12 @@ build() {
              --libdir=/usr/lib --datadir=/usr/share --includedir=/usr/include \
              --with-udevdir=/lib/udev --libexecdir=/usr/lib/zfs --with-config=kernel \
              --with-linux="${srcdir}/$_srcname"
@@ -167,7 +166,7 @@ index fc4accf1..9945ea93 100644
      fi
  
  }
-@@ -606,13 +614,13 @@ _package() {
+@@ -605,13 +614,13 @@ _package() {
      echo "Installing boot image..."
      # systemd expects to find the kernel here to allow hibernation
      # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
@@ -183,7 +182,7 @@ index fc4accf1..9945ea93 100644
          DEPMOD=/doesnt/exist  modules_install  # Suppress depmod
  
      # remove build links
-@@ -626,7 +634,7 @@ _package-headers() {
+@@ -635,7 +644,7 @@ _package-headers() {
      if _is_lto_kernel; then
          provides+=(linux-cachyos-lto-headers=$_kernver)
          replaces=(linux-cachyos-lto-headers)
@@ -192,7 +191,7 @@ index fc4accf1..9945ea93 100644
      fi
  
      cd "${_srcname}"
-@@ -686,7 +694,7 @@ _package-headers() {
+@@ -695,7 +704,7 @@ _package-headers() {
      fi
  
      echo "Installing unstripped VDSO..."
@@ -201,8 +200,8 @@ index fc4accf1..9945ea93 100644
        link=  # Suppress build-id symlinks
  
      echo "Removing unneeded architectures..."
-@@ -795,12 +803,22 @@ _package-r8125() {
-     echo "blacklist r8169" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+@@ -804,12 +813,22 @@ _package-r8125() {
+     echo "install r8169 /usr/bin/modprobe r8125 || /usr/bin/modprobe --ignore-install r8169" > "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
  }
  
 +_package-signkey() {
@@ -224,15 +223,17 @@ index fc4accf1..9945ea93 100644
  for _p in "${pkgname[@]}"; do
      eval "package_$_p() {
      $(declare -f "_package${_p#$pkgbase}")
-@@ -810,4 +828,10 @@ done
+@@ -818,5 +837,11 @@ for _p in "${pkgname[@]}"; do
+ done
  
- b2sums=('a0885a688e8ea83da755115a86926134f8795b93c7d2eb1c00baff521ed10ba0aeb2691ad26454da20f2cecb169b6d655705b7e11fa6d108428ca1d2c0e5d696'
-         'b55556d1ebec83a529359f74e7231d48d85066be80a472591c3e8c8f258050ce3132e277e367f793d0d93896224ec4bd6e0ebf3fdb0ae674b23141d66802dc16'
--        'ea26c88950fc06b6ffab93b30e3beacc7d26571a70262334ca8b001dc7899bf96b47d703fbaa7f4e47765c3dafccc23c58a4d4da2169b8ee50012afcb7a1dd96')
-+        '5ebe5ea2840979ca5bd54919f43916dc4ce54f612f8f8580eb3e5a04d834ba3f64a52af9d1ee6aa78aceaf82191f7676b19b4fb4b61bfbda49a07c3493d8a803'
+ b2sums=('d6ab08acd91f405f36205070cdebab99d244e439ca00d823c4068aeba583818dd3c1fdc0d0b3836406ecb1a93b611c637533b50ae96e9bda3153682bbb9f33bd'
+-        'bd404bba9f1d30d7a82e7d147e11d34e28a75d00f511e1e5cbfea51a33f814eb492c28a4f0bda87546d5c81b980dce69bdd7ac5f02860f4d3c003b2073f2aa9f'
+-        'c992567bd7dd8553432be496ffa1c17e2f5ebe9c7edb51945cf977e1b742dd6517c210d8843bb82744ca705efd07f8027cd7dde41b50215ebd707a34aa81462e')
++        '7bb5113dbc67e8e2ce5c5473ae1b08973af5adba0a6a14c64a213bb116e5a172d40b7c274b85ad15553511484ee1f120e0372251e242c6f87ce6920235f0c136'
++        '0aed3502afb709b06e32afa56f7ba3a9b412a312f8ba5074b756002d735bd7a76c62b9071c28861858b4e624ceb2550985e40557ca44358dc8299ae18039ff5a'
 +        'd884b1cbf3aa605d6375c3fb8095b9a65bc28d9f7aef2088a45b76df7c5a393ad68767878bbf93b5c5ffd87063df10d670e1f145945c2d6c2132c8dc12d1f30c'
-+        'ea26c88950fc06b6ffab93b30e3beacc7d26571a70262334ca8b001dc7899bf96b47d703fbaa7f4e47765c3dafccc23c58a4d4da2169b8ee50012afcb7a1dd96'
-+        'b64931b5fcf47fab636232a94abcd107f4faae80cb9282e8aa5cfbb1a9fb113ef382843e4122225e735308f616e2cd4e7447ed1279eae2bd8f7705c19b7e4125'
-+        'e7e06521b34da15ee30a5466353265048433c7070012f3d4b12412dd0b51bb2dad89283fae9815c978943adbc391ca897c3eaeb5eca50ab964281bebce63bedf'
-+        '6d6f1d861e72aa4a55bb6c6552a962ef39a259a959a1254deb96d89d79745f633b0307cb66af488862038856973839eae58176df4d6b50a25f9b26b6c6fac6b0'
-+        '1f19f560470887c3236c33a7ed23f43e05a4c1ff7f3cd939e01979596bf8504926a9c30dda2470b72fde3f05d6eeae834128e9fb4cc63dde2f839005cddcf7c3')
++        'c992567bd7dd8553432be496ffa1c17e2f5ebe9c7edb51945cf977e1b742dd6517c210d8843bb82744ca705efd07f8027cd7dde41b50215ebd707a34aa81462e'
++        '22009b50a3ee7826db4757d316fc3b4401ac60c7825eb540c53b95922fe9cf95566de4cd0c847f6e4444e08e8910b17c30c943348fdfc6a841b33da16d5f572c'
++        '7a5b5eb346252dd6bd58cab2dfceb1bc5fb92a2c8ab8bba13af543eb8731ce4d5e04be06da13453e53697c084dd7595afea3e68198601f2730ef3ffdb4cffd50'
++        'b0595bfbc50f1778e1f8fec611b4aff97b47bff90581857dd2a40a6b5da30133a9538ec12865a0f24f65d83d132dee398a0fefa5cfc0cb6db2e67158d7d7edad'
++        '9dc1a5a46d8ecf606323926f22b4ce0aaf910dc47fd9ab9b8d08d1600e0bb45109babf7098f390562d8d8456239bb44b7db13b175fe2f529b9784a603dc11fbe')
