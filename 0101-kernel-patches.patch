@@ -1,7 +1,7 @@
 From dfd9d4ebb82c7457ad11daaadea01e7cf4d5760e Mon Sep 17 00:00:00 2001
 From: Cengiz Can <cengiz.can@canonical.com>
 Date: Tue, 10 Feb 2026 11:17:14 +0300
-Subject: [PATCH 1/9] apparmor: use target task's context in
+Subject: [PATCH 01/18] apparmor: use target task's context in
  apparmor_getprocattr()
 
 apparmor_getprocattr() incorrectly calls task_ctx(current) instead of
@@ -70,7 +70,7 @@ index c1d42fc72fdb..d3af2d10fc22 100644
 From 266fb27344373a4827fd0bdc7c586921dc6b6421 Mon Sep 17 00:00:00 2001
 From: Massimiliano Pellizzer <massimiliano.pellizzer@canonical.com>
 Date: Tue, 20 Jan 2026 15:24:05 +0100
-Subject: [PATCH 2/9] apparmor: return error on namespace mismatch in
+Subject: [PATCH 02/18] apparmor: return error on namespace mismatch in
  verify_header
 
 When profiles in a multi-profile load specify different namesapaces,
@@ -107,7 +107,7 @@ index 076d3ff14da6..a6146060d15c 100644
 From 9f0934b648db4e19b6ddca1153fc64caf7136e8f Mon Sep 17 00:00:00 2001
 From: Daniel J Blueman <daniel@quora.org>
 Date: Fri, 27 Mar 2026 19:58:32 +0800
-Subject: [PATCH 3/9] apparmor: Fix string overrun due to missing termination
+Subject: [PATCH 03/18] apparmor: Fix string overrun due to missing termination
 
 commit 828bf7929bedcb79b560b5b4e44f22abee07d31b upstream.
 
@@ -229,7 +229,7 @@ index 65a0ca5cc1bd..2494e8101538 100644
 From e1bb03ceb715a12e4be90aa496ac504ea291bbb4 Mon Sep 17 00:00:00 2001
 From: Rick Edgecombe <rick.p.edgecombe@intel.com>
 Date: Thu, 9 Apr 2026 11:43:30 -0700
-Subject: [PATCH 4/9] x86/shstk: Prevent deadlock during shstk sigreturn
+Subject: [PATCH 04/18] x86/shstk: Prevent deadlock during shstk sigreturn
 
 commit 9874b2917b9fbc30956fee209d3c4aa47201c64e upstream.
 
@@ -370,7 +370,7 @@ index ff8edea8511b..63775693a3bb 100644
 From 5e826da7f99427bdfbdf9488248359b2941f7fa9 Mon Sep 17 00:00:00 2001
 From: Kuan-Ting Chen <h3xrabbit@gmail.com>
 Date: Mon, 4 May 2026 23:27:12 +0800
-Subject: [PATCH 5/9] xfrm: esp: avoid in-place decrypt on shared skb frags
+Subject: [PATCH 05/18] xfrm: esp: avoid in-place decrypt on shared skb frags
 
 commit f4c50a4034e62ab75f1d5cdd191dd5f9c77fdff4 upstream.
 
@@ -473,10 +473,878 @@ index 8e2a6b28cea7..3f14e363c96e 100644
 2.54.0
 
 
-From c0c247b0fee8de8a84894fd33b6519c6bede8f21 Mon Sep 17 00:00:00 2001
+From 5c229aff8b4ffd89b05ac211459a04a66a363e9b Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 22 Apr 2026 17:14:32 +0100
+Subject: [PATCH 06/18] rxrpc: Fix potential UAF after skb_unshare() failure
+
+commit 1f2740150f904bfa60e4bad74d65add3ccb5e7f8 upstream.
+
+If skb_unshare() fails to unshare a packet due to allocation failure in
+rxrpc_input_packet(), the skb pointer in the parent (rxrpc_io_thread())
+will be NULL'd out.  This will likely cause the call to
+trace_rxrpc_rx_done() to oops.
+
+Fix this by moving the unsharing down to where rxrpc_input_call_event()
+calls rxrpc_input_call_packet().  There are a number of places prior to
+that where we ignore DATA packets for a variety of reasons (such as the
+call already being complete) for which an unshare is then avoided.
+
+And with that, rxrpc_input_packet() doesn't need to take a pointer to the
+pointer to the packet, so change that to just a pointer.
+
+Fixes: 2d1faf7a0ca3 ("rxrpc: Simplify skbuff accounting in receive path")
+Closes: https://sashiko.dev/#/patchset/20260408121252.2249051-1-dhowells%40redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260422161438.2593376-4-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ include/trace/events/rxrpc.h |  4 ++--
+ net/rxrpc/ar-internal.h      |  1 -
+ net/rxrpc/call_event.c       | 19 ++++++++++++++++++-
+ net/rxrpc/io_thread.c        | 24 ++----------------------
+ net/rxrpc/skbuff.c           |  9 ---------
+ 5 files changed, 22 insertions(+), 35 deletions(-)
+
+diff --git a/include/trace/events/rxrpc.h b/include/trace/events/rxrpc.h
+index 578b8038b211..8d77828b7515 100644
+--- a/include/trace/events/rxrpc.h
++++ b/include/trace/events/rxrpc.h
+@@ -161,8 +161,6 @@
+ 	E_(rxrpc_call_poke_timer_now,		"Timer-now")
+ 
+ #define rxrpc_skb_traces \
+-	EM(rxrpc_skb_eaten_by_unshare,		"ETN unshare  ") \
+-	EM(rxrpc_skb_eaten_by_unshare_nomem,	"ETN unshar-nm") \
+ 	EM(rxrpc_skb_get_call_rx,		"GET call-rx  ") \
+ 	EM(rxrpc_skb_get_conn_secured,		"GET conn-secd") \
+ 	EM(rxrpc_skb_get_conn_work,		"GET conn-work") \
+@@ -189,6 +187,7 @@
+ 	EM(rxrpc_skb_put_purge,			"PUT purge    ") \
+ 	EM(rxrpc_skb_put_purge_oob,		"PUT purge-oob") \
+ 	EM(rxrpc_skb_put_response,		"PUT response ") \
++	EM(rxrpc_skb_put_response_copy,		"PUT resp-cpy ") \
+ 	EM(rxrpc_skb_put_rotate,		"PUT rotate   ") \
+ 	EM(rxrpc_skb_put_unknown,		"PUT unknown  ") \
+ 	EM(rxrpc_skb_see_conn_work,		"SEE conn-work") \
+@@ -197,6 +196,7 @@
+ 	EM(rxrpc_skb_see_recvmsg_oob,		"SEE recvm-oob") \
+ 	EM(rxrpc_skb_see_reject,		"SEE reject   ") \
+ 	EM(rxrpc_skb_see_rotate,		"SEE rotate   ") \
++	EM(rxrpc_skb_see_unshare_nomem,		"SEE unshar-nm") \
+ 	E_(rxrpc_skb_see_version,		"SEE version  ")
+ 
+ #define rxrpc_local_traces \
+diff --git a/net/rxrpc/ar-internal.h b/net/rxrpc/ar-internal.h
+index 96ecb83c9071..27c2aa2dd023 100644
+--- a/net/rxrpc/ar-internal.h
++++ b/net/rxrpc/ar-internal.h
+@@ -1486,7 +1486,6 @@ int rxrpc_server_keyring(struct rxrpc_sock *, sockptr_t, int);
+ void rxrpc_kernel_data_consumed(struct rxrpc_call *, struct sk_buff *);
+ void rxrpc_new_skb(struct sk_buff *, enum rxrpc_skb_trace);
+ void rxrpc_see_skb(struct sk_buff *, enum rxrpc_skb_trace);
+-void rxrpc_eaten_skb(struct sk_buff *, enum rxrpc_skb_trace);
+ void rxrpc_get_skb(struct sk_buff *, enum rxrpc_skb_trace);
+ void rxrpc_free_skb(struct sk_buff *, enum rxrpc_skb_trace);
+ void rxrpc_purge_queue(struct sk_buff_head *);
+diff --git a/net/rxrpc/call_event.c b/net/rxrpc/call_event.c
+index fec59d9338b9..cc8f9dfa44e8 100644
+--- a/net/rxrpc/call_event.c
++++ b/net/rxrpc/call_event.c
+@@ -332,7 +332,24 @@ bool rxrpc_input_call_event(struct rxrpc_call *call)
+ 
+ 			saw_ack |= sp->hdr.type == RXRPC_PACKET_TYPE_ACK;
+ 
+-			rxrpc_input_call_packet(call, skb);
++			if (sp->hdr.securityIndex != 0 &&
++			    skb_cloned(skb)) {
++				/* Unshare the packet so that it can be
++				 * modified by in-place decryption.
++				 */
++				struct sk_buff *nskb = skb_copy(skb, GFP_ATOMIC);
++
++				if (nskb) {
++					rxrpc_new_skb(nskb, rxrpc_skb_new_unshared);
++					rxrpc_input_call_packet(call, nskb);
++					rxrpc_free_skb(nskb, rxrpc_skb_put_call_rx);
++				} else {
++					/* OOM - Drop the packet. */
++					rxrpc_see_skb(skb, rxrpc_skb_see_unshare_nomem);
++				}
++			} else {
++				rxrpc_input_call_packet(call, skb);
++			}
+ 			rxrpc_free_skb(skb, rxrpc_skb_put_call_rx);
+ 			did_receive = true;
+ 		}
+diff --git a/net/rxrpc/io_thread.c b/net/rxrpc/io_thread.c
+index 697956931925..dc5184a2fa9d 100644
+--- a/net/rxrpc/io_thread.c
++++ b/net/rxrpc/io_thread.c
+@@ -192,13 +192,12 @@ static bool rxrpc_extract_abort(struct sk_buff *skb)
+ /*
+  * Process packets received on the local endpoint
+  */
+-static bool rxrpc_input_packet(struct rxrpc_local *local, struct sk_buff **_skb)
++static bool rxrpc_input_packet(struct rxrpc_local *local, struct sk_buff *skb)
+ {
+ 	struct rxrpc_connection *conn;
+ 	struct sockaddr_rxrpc peer_srx;
+ 	struct rxrpc_skb_priv *sp;
+ 	struct rxrpc_peer *peer = NULL;
+-	struct sk_buff *skb = *_skb;
+ 	bool ret = false;
+ 
+ 	skb_pull(skb, sizeof(struct udphdr));
+@@ -244,25 +243,6 @@ static bool rxrpc_input_packet(struct rxrpc_local *local, struct sk_buff **_skb)
+ 			return rxrpc_bad_message(skb, rxrpc_badmsg_zero_call);
+ 		if (sp->hdr.seq == 0)
+ 			return rxrpc_bad_message(skb, rxrpc_badmsg_zero_seq);
+-
+-		/* Unshare the packet so that it can be modified for in-place
+-		 * decryption.
+-		 */
+-		if (sp->hdr.securityIndex != 0) {
+-			skb = skb_unshare(skb, GFP_ATOMIC);
+-			if (!skb) {
+-				rxrpc_eaten_skb(*_skb, rxrpc_skb_eaten_by_unshare_nomem);
+-				*_skb = NULL;
+-				return just_discard;
+-			}
+-
+-			if (skb != *_skb) {
+-				rxrpc_eaten_skb(*_skb, rxrpc_skb_eaten_by_unshare);
+-				*_skb = skb;
+-				rxrpc_new_skb(skb, rxrpc_skb_new_unshared);
+-				sp = rxrpc_skb(skb);
+-			}
+-		}
+ 		break;
+ 
+ 	case RXRPC_PACKET_TYPE_CHALLENGE:
+@@ -494,7 +474,7 @@ int rxrpc_io_thread(void *data)
+ 			switch (skb->mark) {
+ 			case RXRPC_SKB_MARK_PACKET:
+ 				skb->priority = 0;
+-				if (!rxrpc_input_packet(local, &skb))
++				if (!rxrpc_input_packet(local, skb))
+ 					rxrpc_reject_packet(local, skb);
+ 				trace_rxrpc_rx_done(skb->mark, skb->priority);
+ 				rxrpc_free_skb(skb, rxrpc_skb_put_input);
+diff --git a/net/rxrpc/skbuff.c b/net/rxrpc/skbuff.c
+index 3bcd6ee80396..e2169d1a14b5 100644
+--- a/net/rxrpc/skbuff.c
++++ b/net/rxrpc/skbuff.c
+@@ -46,15 +46,6 @@ void rxrpc_get_skb(struct sk_buff *skb, enum rxrpc_skb_trace why)
+ 	skb_get(skb);
+ }
+ 
+-/*
+- * Note the dropping of a ref on a socket buffer by the core.
+- */
+-void rxrpc_eaten_skb(struct sk_buff *skb, enum rxrpc_skb_trace why)
+-{
+-	int n = atomic_inc_return(&rxrpc_n_rx_skbs);
+-	trace_rxrpc_skb(skb, 0, n, why);
+-}
+-
+ /*
+  * Note the destruction of a socket buffer.
+  */
+-- 
+2.54.0
+
+
+From da491aa6bc1d0fe27b90d0e1e14cea2027395eae Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 22 Apr 2026 17:14:30 +0100
+Subject: [PATCH 07/18] rxrpc: Fix memory leaks in rxkad_verify_response()
+
+commit 34f61a07e0cdefaecd3ec03bb5fb22215643678f upstream.
+
+Fix rxkad_verify_response() to free the ticket and the server key under all
+circumstances by initialising the ticket pointer to NULL and then making
+all paths through the function after the first allocation has been done go
+through a single common epilogue that just releases everything - where all
+the releases skip on a NULL pointer.
+
+Fixes: 57af281e5389 ("rxrpc: Tidy up abort generation infrastructure")
+Fixes: ec832bd06d6f ("rxrpc: Don't retain the server key in the connection")
+Closes: https://sashiko.dev/#/patchset/20260408121252.2249051-1-dhowells%40redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260422161438.2593376-2-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/rxrpc/rxkad.c | 103 +++++++++++++++++++---------------------------
+ 1 file changed, 42 insertions(+), 61 deletions(-)
+
+diff --git a/net/rxrpc/rxkad.c b/net/rxrpc/rxkad.c
+index eb7f2769d2b1..5a720222854f 100644
+--- a/net/rxrpc/rxkad.c
++++ b/net/rxrpc/rxkad.c
+@@ -1136,7 +1136,7 @@ static int rxkad_verify_response(struct rxrpc_connection *conn,
+ 	struct rxrpc_crypt session_key;
+ 	struct key *server_key;
+ 	time64_t expiry;
+-	void *ticket;
++	void *ticket = NULL;
+ 	u32 version, kvno, ticket_len, level;
+ 	__be32 csum;
+ 	int ret, i;
+@@ -1162,13 +1162,13 @@ static int rxkad_verify_response(struct rxrpc_connection *conn,
+ 	ret = -ENOMEM;
+ 	response = kzalloc_obj(struct rxkad_response, GFP_NOFS);
+ 	if (!response)
+-		goto temporary_error;
++		goto error;
+ 
+ 	if (skb_copy_bits(skb, sizeof(struct rxrpc_wire_header),
+ 			  response, sizeof(*response)) < 0) {
+-		rxrpc_abort_conn(conn, skb, RXKADPACKETSHORT, -EPROTO,
+-				 rxkad_abort_resp_short);
+-		goto protocol_error;
++		ret = rxrpc_abort_conn(conn, skb, RXKADPACKETSHORT, -EPROTO,
++				       rxkad_abort_resp_short);
++		goto error;
+ 	}
+ 
+ 	version = ntohl(response->version);
+@@ -1178,62 +1178,62 @@ static int rxkad_verify_response(struct rxrpc_connection *conn,
+ 	trace_rxrpc_rx_response(conn, sp->hdr.serial, version, kvno, ticket_len);
+ 
+ 	if (version != RXKAD_VERSION) {
+-		rxrpc_abort_conn(conn, skb, RXKADINCONSISTENCY, -EPROTO,
+-				 rxkad_abort_resp_version);
+-		goto protocol_error;
++		ret = rxrpc_abort_conn(conn, skb, RXKADINCONSISTENCY, -EPROTO,
++				       rxkad_abort_resp_version);
++		goto error;
+ 	}
+ 
+ 	if (ticket_len < 4 || ticket_len > MAXKRB5TICKETLEN) {
+-		rxrpc_abort_conn(conn, skb, RXKADTICKETLEN, -EPROTO,
+-				 rxkad_abort_resp_tkt_len);
+-		goto protocol_error;
++		ret = rxrpc_abort_conn(conn, skb, RXKADTICKETLEN, -EPROTO,
++				       rxkad_abort_resp_tkt_len);
++		goto error;
+ 	}
+ 
+ 	if (kvno >= RXKAD_TKT_TYPE_KERBEROS_V5) {
+-		rxrpc_abort_conn(conn, skb, RXKADUNKNOWNKEY, -EPROTO,
+-				 rxkad_abort_resp_unknown_tkt);
+-		goto protocol_error;
++		ret = rxrpc_abort_conn(conn, skb, RXKADUNKNOWNKEY, -EPROTO,
++				       rxkad_abort_resp_unknown_tkt);
++		goto error;
+ 	}
+ 
+ 	/* extract the kerberos ticket and decrypt and decode it */
+ 	ret = -ENOMEM;
+ 	ticket = kmalloc(ticket_len, GFP_NOFS);
+ 	if (!ticket)
+-		goto temporary_error_free_resp;
++		goto error;
+ 
+ 	if (skb_copy_bits(skb, sizeof(struct rxrpc_wire_header) + sizeof(*response),
+ 			  ticket, ticket_len) < 0) {
+-		rxrpc_abort_conn(conn, skb, RXKADPACKETSHORT, -EPROTO,
+-				 rxkad_abort_resp_short_tkt);
+-		goto protocol_error;
++		ret = rxrpc_abort_conn(conn, skb, RXKADPACKETSHORT, -EPROTO,
++				       rxkad_abort_resp_short_tkt);
++		goto error;
+ 	}
+ 
+ 	ret = rxkad_decrypt_ticket(conn, server_key, skb, ticket, ticket_len,
+ 				   &session_key, &expiry);
+ 	if (ret < 0)
+-		goto temporary_error_free_ticket;
++		goto error;
+ 
+ 	/* use the session key from inside the ticket to decrypt the
+ 	 * response */
+ 	ret = rxkad_decrypt_response(conn, response, &session_key);
+ 	if (ret < 0)
+-		goto temporary_error_free_ticket;
++		goto error;
+ 
+ 	if (ntohl(response->encrypted.epoch) != conn->proto.epoch ||
+ 	    ntohl(response->encrypted.cid) != conn->proto.cid ||
+ 	    ntohl(response->encrypted.securityIndex) != conn->security_ix) {
+-		rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
+-				 rxkad_abort_resp_bad_param);
+-		goto protocol_error_free;
++		ret = rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
++				       rxkad_abort_resp_bad_param);
++		goto error;
+ 	}
+ 
+ 	csum = response->encrypted.checksum;
+ 	response->encrypted.checksum = 0;
+ 	rxkad_calc_response_checksum(response);
+ 	if (response->encrypted.checksum != csum) {
+-		rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
+-				 rxkad_abort_resp_bad_checksum);
+-		goto protocol_error_free;
++		ret = rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
++				       rxkad_abort_resp_bad_checksum);
++		goto error;
+ 	}
+ 
+ 	for (i = 0; i < RXRPC_MAXCALLS; i++) {
+@@ -1241,38 +1241,38 @@ static int rxkad_verify_response(struct rxrpc_connection *conn,
+ 		u32 counter = READ_ONCE(conn->channels[i].call_counter);
+ 
+ 		if (call_id > INT_MAX) {
+-			rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
+-					 rxkad_abort_resp_bad_callid);
+-			goto protocol_error_free;
++			ret = rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
++					       rxkad_abort_resp_bad_callid);
++			goto error;
+ 		}
+ 
+ 		if (call_id < counter) {
+-			rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
+-					 rxkad_abort_resp_call_ctr);
+-			goto protocol_error_free;
++			ret = rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
++					       rxkad_abort_resp_call_ctr);
++			goto error;
+ 		}
+ 
+ 		if (call_id > counter) {
+ 			if (conn->channels[i].call) {
+-				rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
++				ret = rxrpc_abort_conn(conn, skb, RXKADSEALEDINCON, -EPROTO,
+ 						 rxkad_abort_resp_call_state);
+-				goto protocol_error_free;
++				goto error;
+ 			}
+ 			conn->channels[i].call_counter = call_id;
+ 		}
+ 	}
+ 
+ 	if (ntohl(response->encrypted.inc_nonce) != conn->rxkad.nonce + 1) {
+-		rxrpc_abort_conn(conn, skb, RXKADOUTOFSEQUENCE, -EPROTO,
+-				 rxkad_abort_resp_ooseq);
+-		goto protocol_error_free;
++		ret = rxrpc_abort_conn(conn, skb, RXKADOUTOFSEQUENCE, -EPROTO,
++				       rxkad_abort_resp_ooseq);
++		goto error;
+ 	}
+ 
+ 	level = ntohl(response->encrypted.level);
+ 	if (level > RXRPC_SECURITY_ENCRYPT) {
+-		rxrpc_abort_conn(conn, skb, RXKADLEVELFAIL, -EPROTO,
+-				 rxkad_abort_resp_level);
+-		goto protocol_error_free;
++		ret = rxrpc_abort_conn(conn, skb, RXKADLEVELFAIL, -EPROTO,
++				       rxkad_abort_resp_level);
++		goto error;
+ 	}
+ 	conn->security_level = level;
+ 
+@@ -1280,31 +1280,12 @@ static int rxkad_verify_response(struct rxrpc_connection *conn,
+ 	 * this the connection security can be handled in exactly the same way
+ 	 * as for a client connection */
+ 	ret = rxrpc_get_server_data_key(conn, &session_key, expiry, kvno);
+-	if (ret < 0)
+-		goto temporary_error_free_ticket;
+-
+-	kfree(ticket);
+-	kfree(response);
+-	_leave(" = 0");
+-	return 0;
+ 
+-protocol_error_free:
+-	kfree(ticket);
+-protocol_error:
+-	kfree(response);
+-	key_put(server_key);
+-	return -EPROTO;
+-
+-temporary_error_free_ticket:
++error:
+ 	kfree(ticket);
+-temporary_error_free_resp:
+ 	kfree(response);
+-temporary_error:
+-	/* Ignore the response packet if we got a temporary error such as
+-	 * ENOMEM.  We just want to send the challenge again.  Note that we
+-	 * also come out this way if the ticket decryption fails.
+-	 */
+ 	key_put(server_key);
++	_leave(" = %d", ret);
+ 	return ret;
+ }
+ 
+-- 
+2.54.0
+
+
+From 8509a3a670e39cad3afa9033e1a294d3f0652af4 Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 22 Apr 2026 17:14:33 +0100
+Subject: [PATCH 08/18] rxrpc: Fix conn-level packet handling to unshare
+ RESPONSE packets
+
+commit 24481a7f573305706054c59e275371f8d0fe919f upstream.
+
+The security operations that verify the RESPONSE packets decrypt bits of it
+in place - however, the sk_buff may be shared with a packet sniffer, which
+would lead to the sniffer seeing an apparently corrupt packet (actually
+decrypted).
+
+Fix this by handing a copy of the packet off to the specific security
+handler if the packet was cloned.
+
+Fixes: 17926a79320a ("[AF_RXRPC]: Provide secure RxRPC sockets for use by userspace and kernel both")
+Closes: https://sashiko.dev/#/patchset/20260408121252.2249051-1-dhowells%40redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260422161438.2593376-5-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/rxrpc/conn_event.c | 29 ++++++++++++++++++++++++++++-
+ 1 file changed, 28 insertions(+), 1 deletion(-)
+
+diff --git a/net/rxrpc/conn_event.c b/net/rxrpc/conn_event.c
+index 9a41ec708aeb..aee977291d90 100644
+--- a/net/rxrpc/conn_event.c
++++ b/net/rxrpc/conn_event.c
+@@ -240,6 +240,33 @@ static void rxrpc_call_is_secure(struct rxrpc_call *call)
+ 		rxrpc_notify_socket(call);
+ }
+ 
++static int rxrpc_verify_response(struct rxrpc_connection *conn,
++				 struct sk_buff *skb)
++{
++	int ret;
++
++	if (skb_cloned(skb)) {
++		/* Copy the packet if shared so that we can do in-place
++		 * decryption.
++		 */
++		struct sk_buff *nskb = skb_copy(skb, GFP_NOFS);
++
++		if (nskb) {
++			rxrpc_new_skb(nskb, rxrpc_skb_new_unshared);
++			ret = conn->security->verify_response(conn, nskb);
++			rxrpc_free_skb(nskb, rxrpc_skb_put_response_copy);
++		} else {
++			/* OOM - Drop the packet. */
++			rxrpc_see_skb(skb, rxrpc_skb_see_unshare_nomem);
++			ret = -ENOMEM;
++		}
++	} else {
++		ret = conn->security->verify_response(conn, skb);
++	}
++
++	return ret;
++}
++
+ /*
+  * connection-level Rx packet processor
+  */
+@@ -270,7 +297,7 @@ static int rxrpc_process_event(struct rxrpc_connection *conn,
+ 		}
+ 		spin_unlock_irq(&conn->state_lock);
+ 
+-		ret = conn->security->verify_response(conn, skb);
++		ret = rxrpc_verify_response(conn, skb);
+ 		if (ret < 0)
+ 			return ret;
+ 
+-- 
+2.54.0
+
+
+From e0b6da7762115e034087598995732e1dd98686c3 Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 22 Apr 2026 17:14:31 +0100
+Subject: [PATCH 09/18] rxrpc: Fix rxkad crypto unalignment handling
+
+commit def304aae2edf321d2671fd6ca766a93c21f877e upstream.
+
+Fix handling of a packet with a misaligned crypto length.  Also handle
+non-ENOMEM errors from decryption by aborting.  Further, remove the
+WARN_ON_ONCE() so that it can't be remotely triggered (a trace line can
+still be emitted).
+
+Fixes: f93af41b9f5f ("rxrpc: Fix missing error checks for rxkad encryption/decryption failure")
+Closes: https://sashiko.dev/#/patchset/20260408121252.2249051-1-dhowells%40redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260422161438.2593376-3-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ include/trace/events/rxrpc.h | 1 +
+ net/rxrpc/rxkad.c            | 9 +++++++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/include/trace/events/rxrpc.h b/include/trace/events/rxrpc.h
+index 8d77828b7515..13b9d017f8e1 100644
+--- a/include/trace/events/rxrpc.h
++++ b/include/trace/events/rxrpc.h
+@@ -37,6 +37,7 @@
+ 	EM(rxkad_abort_1_short_encdata,		"rxkad1-short-encdata")	\
+ 	EM(rxkad_abort_1_short_header,		"rxkad1-short-hdr")	\
+ 	EM(rxkad_abort_2_short_check,		"rxkad2-short-check")	\
++	EM(rxkad_abort_2_crypto_unaligned,	"rxkad2-crypto-unaligned") \
+ 	EM(rxkad_abort_2_short_data,		"rxkad2-short-data")	\
+ 	EM(rxkad_abort_2_short_header,		"rxkad2-short-hdr")	\
+ 	EM(rxkad_abort_2_short_len,		"rxkad2-short-len")	\
+diff --git a/net/rxrpc/rxkad.c b/net/rxrpc/rxkad.c
+index 5a720222854f..cba7935977f0 100644
+--- a/net/rxrpc/rxkad.c
++++ b/net/rxrpc/rxkad.c
+@@ -510,6 +510,9 @@ static int rxkad_verify_packet_2(struct rxrpc_call *call, struct sk_buff *skb,
+ 		return rxrpc_abort_eproto(call, skb, RXKADSEALEDINCON,
+ 					  rxkad_abort_2_short_header);
+ 
++	/* Don't let the crypto algo see a misaligned length. */
++	sp->len = round_down(sp->len, 8);
++
+ 	/* Decrypt the skbuff in-place.  TODO: We really want to decrypt
+ 	 * directly into the target buffer.
+ 	 */
+@@ -543,8 +546,10 @@ static int rxkad_verify_packet_2(struct rxrpc_call *call, struct sk_buff *skb,
+ 	if (sg != _sg)
+ 		kfree(sg);
+ 	if (ret < 0) {
+-		WARN_ON_ONCE(ret != -ENOMEM);
+-		return ret;
++		if (ret == -ENOMEM)
++			return ret;
++		return rxrpc_abort_eproto(call, skb, RXKADSEALEDINCON,
++					  rxkad_abort_2_crypto_unaligned);
+ 	}
+ 
+ 	/* Extract the decrypted packet length */
+-- 
+2.54.0
+
+
+From 4551c4a4df8fdd9e4024651183fda1bfeef209dc Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Thu, 23 Apr 2026 21:09:08 +0100
+Subject: [PATCH 10/18] rxrpc: Fix error handling in rxgk_extract_token()
+
+commit 3476c8bb960f48e49355d6f93fb7673211e0163f upstream.
+
+Fix a missing bit of error handling in rxgk_extract_token(): in the event
+that rxgk_decrypt_skb() returns -ENOMEM, it should just return that rather
+than continuing on (for anything else, it generates an abort).
+
+Fixes: 64863f4ca494 ("rxrpc: Fix unhandled errors in rxgk_verify_packet_integrity()")
+Closes: https://sashiko.dev/#/patchset/20260422161438.2593376-4-dhowells@redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260423200909.3049438-4-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/rxrpc/rxgk_app.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/net/rxrpc/rxgk_app.c b/net/rxrpc/rxgk_app.c
+index 30275cb5ba3e..30b6701a9867 100644
+--- a/net/rxrpc/rxgk_app.c
++++ b/net/rxrpc/rxgk_app.c
+@@ -245,6 +245,7 @@ int rxgk_extract_token(struct rxrpc_connection *conn, struct sk_buff *skb,
+ 		if (ret != -ENOMEM)
+ 			return rxrpc_abort_conn(conn, skb, ec, ret,
+ 						rxgk_abort_resp_tok_dec);
++		return ret;
+ 	}
+ 
+ 	ret = conn->security->default_decode_ticket(conn, skb, ticket_offset,
+-- 
+2.54.0
+
+
+From 694266433557d99f63173327a72e8f51d1f3a6cc Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Thu, 23 Apr 2026 21:09:07 +0100
+Subject: [PATCH 11/18] rxrpc: Fix re-decryption of RESPONSE packets
+
+commit 0422e7a4883f25101903f3e8105c0808aa5f4ce9 upstream.
+
+If a RESPONSE packet gets a temporary failure during processing, it may end
+up in a partially decrypted state - and then get requeued for a retry.
+
+Fix this by just discarding the packet; we will send another CHALLENGE
+packet and thereby elicit a further response.  Similarly, discard an
+incoming CHALLENGE packet if we get an error whilst generating a RESPONSE;
+the server will send another CHALLENGE.
+
+Fixes: 17926a79320a ("[AF_RXRPC]: Provide secure RxRPC sockets for use by userspace and kernel both")
+Closes: https://sashiko.dev/#/patchset/20260422161438.2593376-4-dhowells@redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260423200909.3049438-3-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ include/trace/events/rxrpc.h |  1 -
+ net/rxrpc/conn_event.c       | 14 ++------------
+ 2 files changed, 2 insertions(+), 13 deletions(-)
+
+diff --git a/include/trace/events/rxrpc.h b/include/trace/events/rxrpc.h
+index 13b9d017f8e1..573f2df3a2c9 100644
+--- a/include/trace/events/rxrpc.h
++++ b/include/trace/events/rxrpc.h
+@@ -285,7 +285,6 @@
+ 	EM(rxrpc_conn_put_unidle,		"PUT unidle  ") \
+ 	EM(rxrpc_conn_put_work,			"PUT work    ") \
+ 	EM(rxrpc_conn_queue_challenge,		"QUE chall   ") \
+-	EM(rxrpc_conn_queue_retry_work,		"QUE retry-wk") \
+ 	EM(rxrpc_conn_queue_rx_work,		"QUE rx-work ") \
+ 	EM(rxrpc_conn_see_new_service_conn,	"SEE new-svc ") \
+ 	EM(rxrpc_conn_see_reap_service,		"SEE reap-svc") \
+diff --git a/net/rxrpc/conn_event.c b/net/rxrpc/conn_event.c
+index aee977291d90..a2130d25aaa9 100644
+--- a/net/rxrpc/conn_event.c
++++ b/net/rxrpc/conn_event.c
+@@ -389,7 +389,6 @@ void rxrpc_process_delayed_final_acks(struct rxrpc_connection *conn, bool force)
+ static void rxrpc_do_process_connection(struct rxrpc_connection *conn)
+ {
+ 	struct sk_buff *skb;
+-	int ret;
+ 
+ 	if (test_and_clear_bit(RXRPC_CONN_EV_CHALLENGE, &conn->events))
+ 		rxrpc_secure_connection(conn);
+@@ -398,17 +397,8 @@ static void rxrpc_do_process_connection(struct rxrpc_connection *conn)
+ 	 * connection that each one has when we've finished with it */
+ 	while ((skb = skb_dequeue(&conn->rx_queue))) {
+ 		rxrpc_see_skb(skb, rxrpc_skb_see_conn_work);
+-		ret = rxrpc_process_event(conn, skb);
+-		switch (ret) {
+-		case -ENOMEM:
+-		case -EAGAIN:
+-			skb_queue_head(&conn->rx_queue, skb);
+-			rxrpc_queue_conn(conn, rxrpc_conn_queue_retry_work);
+-			break;
+-		default:
+-			rxrpc_free_skb(skb, rxrpc_skb_put_conn_work);
+-			break;
+-		}
++		rxrpc_process_event(conn, skb);
++		rxrpc_free_skb(skb, rxrpc_skb_put_conn_work);
+ 	}
+ }
+ 
+-- 
+2.54.0
+
+
+From 46be0ef02e5a7b283d824d5f0b923a4d80888659 Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Thu, 23 Apr 2026 21:09:06 +0100
+Subject: [PATCH 12/18] rxrpc: Fix rxrpc_input_call_event() to only unshare
+ DATA packets
+
+commit 55b2984c96c37f909bbfe8851f13152693951382 upstream.
+
+Fix rxrpc_input_call_event() to only unshare DATA packets and not ACK,
+ABORT, etc..
+
+And with that, rxrpc_input_packet() doesn't need to take a pointer to the
+pointer to the packet, so change that to just a pointer.
+
+Fixes: 1f2740150f90 ("rxrpc: Fix potential UAF after skb_unshare() failure")
+Closes: https://sashiko.dev/#/patchset/20260422161438.2593376-4-dhowells@redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260423200909.3049438-2-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/rxrpc/call_event.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/net/rxrpc/call_event.c b/net/rxrpc/call_event.c
+index cc8f9dfa44e8..fdd683261226 100644
+--- a/net/rxrpc/call_event.c
++++ b/net/rxrpc/call_event.c
+@@ -332,7 +332,8 @@ bool rxrpc_input_call_event(struct rxrpc_call *call)
+ 
+ 			saw_ack |= sp->hdr.type == RXRPC_PACKET_TYPE_ACK;
+ 
+-			if (sp->hdr.securityIndex != 0 &&
++			if (sp->hdr.type == RXRPC_PACKET_TYPE_DATA &&
++			    sp->hdr.securityIndex != 0 &&
+ 			    skb_cloned(skb)) {
+ 				/* Unshare the packet so that it can be
+ 				 * modified by in-place decryption.
+-- 
+2.54.0
+
+
+From 3705a62dcaa4c35660459ebf7234f162f531d806 Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 22 Apr 2026 17:14:34 +0100
+Subject: [PATCH 13/18] rxgk: Fix potential integer overflow in length check
+
+commit 6929350080f4da292d111a3b33e53138fee51cec upstream.
+
+Fix potential integer overflow in rxgk_extract_token() when checking the
+length of the ticket.  Rather than rounding up the value to be tested
+(which might overflow), round down the size of the available data.
+
+Fixes: 2429a1976481 ("rxrpc: Fix untrusted unsigned subtract")
+Closes: https://sashiko.dev/#/patchset/20260408121252.2249051-1-dhowells%40redhat.com
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Marc Dionne <marc.dionne@auristor.com>
+cc: Jeffrey Altman <jaltman@auristor.com>
+cc: Simon Horman <horms@kernel.org>
+cc: linux-afs@lists.infradead.org
+cc: stable@kernel.org
+Link: https://patch.msgid.link/20260422161438.2593376-6-dhowells@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/rxrpc/rxgk_app.c    | 2 +-
+ net/rxrpc/rxgk_common.h | 1 +
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/net/rxrpc/rxgk_app.c b/net/rxrpc/rxgk_app.c
+index 30b6701a9867..0ef2a29eb695 100644
+--- a/net/rxrpc/rxgk_app.c
++++ b/net/rxrpc/rxgk_app.c
+@@ -214,7 +214,7 @@ int rxgk_extract_token(struct rxrpc_connection *conn, struct sk_buff *skb,
+ 	ticket_len	= ntohl(container.token_len);
+ 	ticket_offset	= token_offset + sizeof(container);
+ 
+-	if (xdr_round_up(ticket_len) > token_len - sizeof(container))
++	if (ticket_len > xdr_round_down(token_len - sizeof(container)))
+ 		goto short_packet;
+ 
+ 	_debug("KVNO %u", kvno);
+diff --git a/net/rxrpc/rxgk_common.h b/net/rxrpc/rxgk_common.h
+index 80164d89e19c..1e257d7ab8ec 100644
+--- a/net/rxrpc/rxgk_common.h
++++ b/net/rxrpc/rxgk_common.h
+@@ -34,6 +34,7 @@ struct rxgk_context {
+ };
+ 
+ #define xdr_round_up(x) (round_up((x), sizeof(__be32)))
++#define xdr_round_down(x) (round_down((x), sizeof(__be32)))
+ #define xdr_object_len(x) (4 + xdr_round_up(x))
+ 
+ /*
+-- 
+2.54.0
+
+
+From 7850ea01752a6367bfd891faf9a3142fc0b4f20b Mon Sep 17 00:00:00 2001
+From: Hyunwoo Kim <imv4bel@gmail.com>
+Date: Fri, 8 May 2026 17:53:09 +0900
+Subject: [PATCH 14/18] rxrpc: Also unshare DATA/RESPONSE packets when paged
+ frags are present
+
+commit aa54b1d27fe0c2b78e664a34fd0fdf7cd1960d71 upstream.
+
+The DATA-packet handler in rxrpc_input_call_event() and the RESPONSE
+handler in rxrpc_verify_response() copy the skb to a linear one before
+calling into the security ops only when skb_cloned() is true.  An skb
+that is not cloned but still carries externally-owned paged fragments
+(e.g. SKBFL_SHARED_FRAG set by splice() into a UDP socket via
+__ip_append_data, or a chained skb_has_frag_list()) falls through to
+the in-place decryption path, which binds the frag pages directly into
+the AEAD/skcipher SGL via skb_to_sgvec().
+
+Extend the gate to also unshare when skb_has_frag_list() or
+skb_has_shared_frag() is true.  This catches the splice-loopback vector
+and other externally-shared frag sources while preserving the
+zero-copy fast path for skbs whose frags are kernel-private (e.g. NIC
+page_pool RX, GRO).  The OOM/trace handling already in place is reused.
+
+Fixes: d0d5c0cd1e71 ("rxrpc: Use skb_unshare() rather than skb_cow_data()")
+Cc: stable@vger.kernel.org
+Signed-off-by: Hyunwoo Kim <imv4bel@gmail.com>
+Reviewed-by: Jiayuan Chen <jiayuan.chen@linux.dev>
+Acked-by: David Howells <dhowells@redhat.com>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/rxrpc/call_event.c | 4 +++-
+ net/rxrpc/conn_event.c | 3 ++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/net/rxrpc/call_event.c b/net/rxrpc/call_event.c
+index fdd683261226..2b19b252225e 100644
+--- a/net/rxrpc/call_event.c
++++ b/net/rxrpc/call_event.c
+@@ -334,7 +334,9 @@ bool rxrpc_input_call_event(struct rxrpc_call *call)
+ 
+ 			if (sp->hdr.type == RXRPC_PACKET_TYPE_DATA &&
+ 			    sp->hdr.securityIndex != 0 &&
+-			    skb_cloned(skb)) {
++			    (skb_cloned(skb) ||
++			     skb_has_frag_list(skb) ||
++			     skb_has_shared_frag(skb))) {
+ 				/* Unshare the packet so that it can be
+ 				 * modified by in-place decryption.
+ 				 */
+diff --git a/net/rxrpc/conn_event.c b/net/rxrpc/conn_event.c
+index a2130d25aaa9..442414d90ba1 100644
+--- a/net/rxrpc/conn_event.c
++++ b/net/rxrpc/conn_event.c
+@@ -245,7 +245,8 @@ static int rxrpc_verify_response(struct rxrpc_connection *conn,
+ {
+ 	int ret;
+ 
+-	if (skb_cloned(skb)) {
++	if (skb_cloned(skb) || skb_has_frag_list(skb) ||
++	    skb_has_shared_frag(skb)) {
+ 		/* Copy the packet if shared so that we can do in-place
+ 		 * decryption.
+ 		 */
+-- 
+2.54.0
+
+
+From 457c14d972942dda79a6f37ab6987918fe542a76 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Sat, 7 Mar 2026 00:10:36 +0800
-Subject: [PATCH 6/9] security/yama: Leave ptrace access unrestricted by
+Subject: [PATCH 15/18] security/yama: Leave ptrace access unrestricted by
  default
 
 Some game anti-cheats need this in order to work.
@@ -501,10 +1369,10 @@ index cef3776cf3b2..1da4f6602ba1 100644
 2.54.0
 
 
-From dfe9e86ad488a64d6b681d7793567a5e53caa506 Mon Sep 17 00:00:00 2001
+From c8cd44a425c007b9756944a0845d16adc7b3e0c9 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Sat, 7 Mar 2026 00:09:28 +0800
-Subject: [PATCH 7/9] treewide: Additional hardening configs
+Subject: [PATCH 16/18] treewide: Additional hardening configs
 
 ---
  Documentation/admin-guide/sysctl/kernel.rst |  2 ++
@@ -819,10 +1687,10 @@ index f59228c1a39e..d687678a45ea 100644
 2.54.0
 
 
-From 6766cd38dc5c5493ff51af8fedec4a0df97315dc Mon Sep 17 00:00:00 2001
+From 8cbcc861d2b5206e0fe430b6e687dce73bf876db Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Tue, 5 May 2026 22:43:04 +0800
-Subject: [PATCH 8/9] fs/f2fs: Update to f2fs-for-7.1-rc1
+Subject: [PATCH 17/18] fs/f2fs: Update to f2fs-for-7.1-rc1
 
 ---
  Documentation/ABI/testing/sysfs-fs-f2fs |   6 ++
@@ -2138,10 +3006,10 @@ index 9364e6775562..ff4a58c2cbbb 100644
 2.54.0
 
 
-From 0ec3738f2713cfa15ca35d249b2d5082ed23c5b0 Mon Sep 17 00:00:00 2001
+From a4dd71214d603b5b89c8784249957f643d9f9989 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Tue, 5 May 2026 22:48:51 +0800
-Subject: [PATCH 9/9] fs/exfat: Update to exfat-for-7.1-rc1
+Subject: [PATCH 18/18] fs/exfat: Update to exfat-for-7.1-rc1
 
 ---
  fs/exfat/balloc.c    |  18 ++---
