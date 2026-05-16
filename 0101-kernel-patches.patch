@@ -1,7 +1,7 @@
 From dfd9d4ebb82c7457ad11daaadea01e7cf4d5760e Mon Sep 17 00:00:00 2001
 From: Cengiz Can <cengiz.can@canonical.com>
 Date: Tue, 10 Feb 2026 11:17:14 +0300
-Subject: [PATCH 01/19] apparmor: use target task's context in
+Subject: [PATCH 01/27] apparmor: use target task's context in
  apparmor_getprocattr()
 
 apparmor_getprocattr() incorrectly calls task_ctx(current) instead of
@@ -70,7 +70,7 @@ index c1d42fc72fdb..d3af2d10fc22 100644
 From 266fb27344373a4827fd0bdc7c586921dc6b6421 Mon Sep 17 00:00:00 2001
 From: Massimiliano Pellizzer <massimiliano.pellizzer@canonical.com>
 Date: Tue, 20 Jan 2026 15:24:05 +0100
-Subject: [PATCH 02/19] apparmor: return error on namespace mismatch in
+Subject: [PATCH 02/27] apparmor: return error on namespace mismatch in
  verify_header
 
 When profiles in a multi-profile load specify different namesapaces,
@@ -107,7 +107,7 @@ index 076d3ff14da6..a6146060d15c 100644
 From 9f0934b648db4e19b6ddca1153fc64caf7136e8f Mon Sep 17 00:00:00 2001
 From: Daniel J Blueman <daniel@quora.org>
 Date: Fri, 27 Mar 2026 19:58:32 +0800
-Subject: [PATCH 03/19] apparmor: Fix string overrun due to missing termination
+Subject: [PATCH 03/27] apparmor: Fix string overrun due to missing termination
 
 commit 828bf7929bedcb79b560b5b4e44f22abee07d31b upstream.
 
@@ -229,7 +229,7 @@ index 65a0ca5cc1bd..2494e8101538 100644
 From e1bb03ceb715a12e4be90aa496ac504ea291bbb4 Mon Sep 17 00:00:00 2001
 From: Rick Edgecombe <rick.p.edgecombe@intel.com>
 Date: Thu, 9 Apr 2026 11:43:30 -0700
-Subject: [PATCH 04/19] x86/shstk: Prevent deadlock during shstk sigreturn
+Subject: [PATCH 04/27] x86/shstk: Prevent deadlock during shstk sigreturn
 
 commit 9874b2917b9fbc30956fee209d3c4aa47201c64e upstream.
 
@@ -370,7 +370,7 @@ index ff8edea8511b..63775693a3bb 100644
 From 5e826da7f99427bdfbdf9488248359b2941f7fa9 Mon Sep 17 00:00:00 2001
 From: Kuan-Ting Chen <h3xrabbit@gmail.com>
 Date: Mon, 4 May 2026 23:27:12 +0800
-Subject: [PATCH 05/19] xfrm: esp: avoid in-place decrypt on shared skb frags
+Subject: [PATCH 05/27] xfrm: esp: avoid in-place decrypt on shared skb frags
 
 commit f4c50a4034e62ab75f1d5cdd191dd5f9c77fdff4 upstream.
 
@@ -476,7 +476,7 @@ index 8e2a6b28cea7..3f14e363c96e 100644
 From 5c229aff8b4ffd89b05ac211459a04a66a363e9b Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Wed, 22 Apr 2026 17:14:32 +0100
-Subject: [PATCH 06/19] rxrpc: Fix potential UAF after skb_unshare() failure
+Subject: [PATCH 06/27] rxrpc: Fix potential UAF after skb_unshare() failure
 
 commit 1f2740150f904bfa60e4bad74d65add3ccb5e7f8 upstream.
 
@@ -664,7 +664,7 @@ index 3bcd6ee80396..e2169d1a14b5 100644
 From da491aa6bc1d0fe27b90d0e1e14cea2027395eae Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Wed, 22 Apr 2026 17:14:30 +0100
-Subject: [PATCH 07/19] rxrpc: Fix memory leaks in rxkad_verify_response()
+Subject: [PATCH 07/27] rxrpc: Fix memory leaks in rxkad_verify_response()
 
 commit 34f61a07e0cdefaecd3ec03bb5fb22215643678f upstream.
 
@@ -899,7 +899,7 @@ index eb7f2769d2b1..5a720222854f 100644
 From 8509a3a670e39cad3afa9033e1a294d3f0652af4 Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Wed, 22 Apr 2026 17:14:33 +0100
-Subject: [PATCH 08/19] rxrpc: Fix conn-level packet handling to unshare
+Subject: [PATCH 08/27] rxrpc: Fix conn-level packet handling to unshare
  RESPONSE packets
 
 commit 24481a7f573305706054c59e275371f8d0fe919f upstream.
@@ -981,7 +981,7 @@ index 9a41ec708aeb..aee977291d90 100644
 From e0b6da7762115e034087598995732e1dd98686c3 Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Wed, 22 Apr 2026 17:14:31 +0100
-Subject: [PATCH 09/19] rxrpc: Fix rxkad crypto unalignment handling
+Subject: [PATCH 09/27] rxrpc: Fix rxkad crypto unalignment handling
 
 commit def304aae2edf321d2671fd6ca766a93c21f877e upstream.
 
@@ -1052,7 +1052,7 @@ index 5a720222854f..cba7935977f0 100644
 From 4551c4a4df8fdd9e4024651183fda1bfeef209dc Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Thu, 23 Apr 2026 21:09:08 +0100
-Subject: [PATCH 10/19] rxrpc: Fix error handling in rxgk_extract_token()
+Subject: [PATCH 10/27] rxrpc: Fix error handling in rxgk_extract_token()
 
 commit 3476c8bb960f48e49355d6f93fb7673211e0163f upstream.
 
@@ -1094,7 +1094,7 @@ index 30275cb5ba3e..30b6701a9867 100644
 From 694266433557d99f63173327a72e8f51d1f3a6cc Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Thu, 23 Apr 2026 21:09:07 +0100
-Subject: [PATCH 11/19] rxrpc: Fix re-decryption of RESPONSE packets
+Subject: [PATCH 11/27] rxrpc: Fix re-decryption of RESPONSE packets
 
 commit 0422e7a4883f25101903f3e8105c0808aa5f4ce9 upstream.
 
@@ -1173,7 +1173,7 @@ index aee977291d90..a2130d25aaa9 100644
 From 46be0ef02e5a7b283d824d5f0b923a4d80888659 Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Thu, 23 Apr 2026 21:09:06 +0100
-Subject: [PATCH 12/19] rxrpc: Fix rxrpc_input_call_event() to only unshare
+Subject: [PATCH 12/27] rxrpc: Fix rxrpc_input_call_event() to only unshare
  DATA packets
 
 commit 55b2984c96c37f909bbfe8851f13152693951382 upstream.
@@ -1220,7 +1220,7 @@ index cc8f9dfa44e8..fdd683261226 100644
 From 3705a62dcaa4c35660459ebf7234f162f531d806 Mon Sep 17 00:00:00 2001
 From: David Howells <dhowells@redhat.com>
 Date: Wed, 22 Apr 2026 17:14:34 +0100
-Subject: [PATCH 13/19] rxgk: Fix potential integer overflow in length check
+Subject: [PATCH 13/27] rxgk: Fix potential integer overflow in length check
 
 commit 6929350080f4da292d111a3b33e53138fee51cec upstream.
 
@@ -1276,7 +1276,7 @@ index 80164d89e19c..1e257d7ab8ec 100644
 From 7850ea01752a6367bfd891faf9a3142fc0b4f20b Mon Sep 17 00:00:00 2001
 From: Hyunwoo Kim <imv4bel@gmail.com>
 Date: Fri, 8 May 2026 17:53:09 +0900
-Subject: [PATCH 14/19] rxrpc: Also unshare DATA/RESPONSE packets when paged
+Subject: [PATCH 14/27] rxrpc: Also unshare DATA/RESPONSE packets when paged
  frags are present
 
 commit aa54b1d27fe0c2b78e664a34fd0fdf7cd1960d71 upstream.
@@ -1341,10 +1341,621 @@ index a2130d25aaa9..442414d90ba1 100644
 2.54.0
 
 
-From 1716bd1cc259e293e7ae57caf96bfd882b5db283 Mon Sep 17 00:00:00 2001
+From e8a9865a7a2711b5e6b3d1c006b601209341f629 Mon Sep 17 00:00:00 2001
+From: "David (Ming Qiang) Wu" <David.Wu3@amd.com>
+Date: Mon, 9 Mar 2026 18:48:37 -0400
+Subject: [PATCH 15/27] amdgpu/jpeg: fix deepsleep register for jpeg 5_0_0 and
+ 5_0_2
+
+commit e90dc3b2d73986610476b02c29d0074aa4d92fb0 upstream.
+
+PCTL0__MMHUB_DEEPSLEEP_IB is 0x69004 on MMHUB 4,1,0 and
+and 0x60804 on MMHUB 4,2,0. 0x62a04 is on MMHUB 1,8,0/1.
+
+The DS bits are adjusted to cover more JPEG engines and MMHUB
+version.
+
+Signed-off-by: David (Ming Qiang) Wu <David.Wu3@amd.com>
+Reviewed-by: Alex Deucher <alexander.deucher@amd.com>
+Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
+Cc: stable@vger.kernel.org
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/gpu/drm/amd/amdgpu/jpeg_v4_0_3.c | 52 +++++++++++++++++++++---
+ 1 file changed, 46 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/jpeg_v4_0_3.c b/drivers/gpu/drm/amd/amdgpu/jpeg_v4_0_3.c
+index 4b4aa9553624..82abe181c730 100644
+--- a/drivers/gpu/drm/amd/amdgpu/jpeg_v4_0_3.c
++++ b/drivers/gpu/drm/amd/amdgpu/jpeg_v4_0_3.c
+@@ -736,15 +736,35 @@ static void jpeg_v4_0_3_dec_ring_set_wptr(struct amdgpu_ring *ring)
+  */
+ void jpeg_v4_0_3_dec_ring_insert_start(struct amdgpu_ring *ring)
+ {
+-	if (!amdgpu_sriov_vf(ring->adev)) {
++	struct amdgpu_device *adev = ring->adev;
++
++	if (!amdgpu_sriov_vf(adev)) {
++		int jpeg_inst = GET_INST(JPEG, ring->me);
++		uint32_t value = 0x80004000; /* default DS14 */
++
+ 		amdgpu_ring_write(ring, PACKETJ(regUVD_JRBC_EXTERNAL_REG_INTERNAL_OFFSET,
+ 			0, 0, PACKETJ_TYPE0));
+-		amdgpu_ring_write(ring, 0x62a04); /* PCTL0_MMHUB_DEEPSLEEP_IB */
++
++		/* PCTL0__MMHUB_DEEPSLEEP_IB could be different on different mmhub version */
++		switch (amdgpu_ip_version(adev, MMHUB_HWIP, 0)) {
++		case IP_VERSION(4, 1, 0):
++			amdgpu_ring_write(ring, 0x69004);
++			value = 0x80010000;
++			break;
++		case IP_VERSION(4, 2, 0):
++			amdgpu_ring_write(ring, 0x60804);
++			if (jpeg_inst & 1)
++				value = 0x80010000;
++			break;
++		default:
++			amdgpu_ring_write(ring, 0x62a04);
++			break;
++		}
+ 
+ 		amdgpu_ring_write(ring,
+ 				  PACKETJ(JRBC_DEC_EXTERNAL_REG_WRITE_ADDR, 0,
+ 					  0, PACKETJ_TYPE0));
+-		amdgpu_ring_write(ring, 0x80004000);
++		amdgpu_ring_write(ring, value);
+ 	}
+ }
+ 
+@@ -757,15 +777,35 @@ void jpeg_v4_0_3_dec_ring_insert_start(struct amdgpu_ring *ring)
+  */
+ void jpeg_v4_0_3_dec_ring_insert_end(struct amdgpu_ring *ring)
+ {
+-	if (!amdgpu_sriov_vf(ring->adev)) {
++	struct amdgpu_device *adev = ring->adev;
++
++	if (!amdgpu_sriov_vf(adev)) {
++		int jpeg_inst = GET_INST(JPEG, ring->me);
++		uint32_t value = 0x00004000; /* default DS14 */
++
+ 		amdgpu_ring_write(ring, PACKETJ(regUVD_JRBC_EXTERNAL_REG_INTERNAL_OFFSET,
+ 			0, 0, PACKETJ_TYPE0));
+-		amdgpu_ring_write(ring, 0x62a04);
++
++		/* PCTL0__MMHUB_DEEPSLEEP_IB could be different on different mmhub version */
++		switch (amdgpu_ip_version(adev, MMHUB_HWIP, 0)) {
++		case IP_VERSION(4, 1, 0):
++			amdgpu_ring_write(ring, 0x69004);
++			value = 0x00010000;
++			break;
++		case IP_VERSION(4, 2, 0):
++			amdgpu_ring_write(ring, 0x60804);
++			if (jpeg_inst & 1)
++				value = 0x00010000;
++			break;
++		default:
++			amdgpu_ring_write(ring, 0x62a04);
++			break;
++		}
+ 
+ 		amdgpu_ring_write(ring,
+ 				  PACKETJ(JRBC_DEC_EXTERNAL_REG_WRITE_ADDR, 0,
+ 					  0, PACKETJ_TYPE0));
+-		amdgpu_ring_write(ring, 0x00004000);
++		amdgpu_ring_write(ring, value);
+ 	}
+ }
+ 
+-- 
+2.54.0
+
+
+From 4c37c5527435fa9225a46f42a6cc041e48e57293 Mon Sep 17 00:00:00 2001
+From: Arjan van de Ven <arjan@linux.intel.com>
+Date: Mon, 20 Apr 2026 14:57:15 -0700
+Subject: [PATCH 16/27] drm/amdgpu: fix zero-size GDS range init on RDNA4
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+commit 095a8b0ad3c3b5cdc3850d961adb8a8f735220bb upstream.
+
+RDNA4 (GFX 12) hardware removes the GDS, GWS, and OA on-chip memory
+resources. The gfx_v12_0 initialisation code correctly leaves
+adev->gds.gds_size, adev->gds.gws_size, and adev->gds.oa_size at
+zero to reflect this.
+
+amdgpu_ttm_init() unconditionally calls amdgpu_ttm_init_on_chip() for
+each of these resources regardless of size. When the size is zero,
+amdgpu_ttm_init_on_chip() forwards the call to ttm_range_man_init(),
+which calls drm_mm_init(mm, 0, 0). drm_mm_init() immediately fires
+DRM_MM_BUG_ON(start + size <= start) -- trivially true when size is
+zero -- crashing the kernel during modprobe of amdgpu on an RX 9070 XT.
+
+Guard against this by returning 0 early from
+amdgpu_ttm_init_on_chip() when size_in_page is zero. This skips TTM
+resource manager registration for hardware resources that are absent,
+without affecting any other GPU type.
+
+DRM_MM_BUG_ON() only asserts if CONFIG_DRM_DEBUG_MM is enabled in
+the kernel config.  This is apparently rarely enabled as these chips
+have been in the market for over a year and this issue was only reported
+now.
+
+Link: https://lore.kernel.org/all/bug-221376-2300@https.bugzilla.kernel.org%2F/
+Link: https://bugzilla.kernel.org/show_bug.cgi?id=221376
+Oops-Analysis: http://oops.fenrus.org/reports/bugzilla.korg/221376/report.html
+Assisted-by: GitHub Copilot:Claude Sonnet 4.6 linux-kernel-oops-x86.
+Signed-off-by: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Alex Deucher <alexander.deucher@amd.com>
+Cc: "Christian König" <christian.koenig@amd.com>
+Cc: amd-gfx@lists.freedesktop.org
+Cc: dri-devel@lists.freedesktop.org
+Cc: linux-kernel@vger.kernel.org
+Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
+(cherry picked from commit 5719ce5865279cad4fd5f01011fe037168503f2d)
+Cc: stable@vger.kernel.org
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
+index 0ccb31788b20..95060217e3b0 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
+@@ -75,6 +75,9 @@ static int amdgpu_ttm_init_on_chip(struct amdgpu_device *adev,
+ 				    unsigned int type,
+ 				    uint64_t size_in_page)
+ {
++	if (!size_in_page)
++		return 0;
++
+ 	return ttm_range_man_init(&adev->mman.bdev, type,
+ 				  false, size_in_page);
+ }
+-- 
+2.54.0
+
+
+From fc9fe139bcd4f617c07ce0685688001fbd5f4664 Mon Sep 17 00:00:00 2001
+From: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Date: Thu, 30 Apr 2026 08:25:54 +0800
+Subject: [PATCH 17/27] perf/x86/intel: Improve validation and configuration of
+ ACR masks
+
+commit 5ad732a56be46aabf158c16aa0c095291727aaef upstream.
+
+Currently there are several issues on the user space ACR mask validation
+and configuration.
+- The validation for user space ACR mask (attr.config2) is incomplete,
+  e.g., the ACR mask could include the index which belongs to another
+  ACR events group, but it's not validated.
+- An early return on an invalid ACR mask caused all subsequent ACR groups
+  to be skipped.
+- The stale hardware ACR mask (hw.config1) is not cleared before setting
+  new hardware ACR mask.
+
+The following changes address all of the above issues.
+- Figure out the event index group of an ACR group. Any bits in the
+  user-space mask not present in the index group are now dropped.
+- Instead of an early return on invalid bits, drop only the invalid
+  portions and continue iterating through all ACR events to ensure full
+  configuration.
+- Explicitly clear the stale hardware ACR mask for each event prior to
+  writing the new configuration.
+
+Besides, a non-leader event member of ACR group could be disabled in
+theory. This could cause bit-shifting errors in the acr_mask of remaining
+group members. But since ACR sampling requires all events to be active,
+this should not be a big concern in real use case. Add a "FIXME" comment
+to notice this risk.
+
+Fixes: ec980e4facef ("perf/x86/intel: Support auto counter reload")
+Signed-off-by: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: stable@vger.kernel.org
+Link: https://patch.msgid.link/20260430002558.712334-2-dapeng1.mi@linux.intel.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/events/intel/core.c | 32 +++++++++++++++++++++++++-------
+ 1 file changed, 25 insertions(+), 7 deletions(-)
+
+diff --git a/arch/x86/events/intel/core.c b/arch/x86/events/intel/core.c
+index 793335c3ce78..42910ca36538 100644
+--- a/arch/x86/events/intel/core.c
++++ b/arch/x86/events/intel/core.c
+@@ -3332,23 +3332,41 @@ static void intel_pmu_enable_event(struct perf_event *event)
+ static void intel_pmu_acr_late_setup(struct cpu_hw_events *cpuc)
+ {
+ 	struct perf_event *event, *leader;
+-	int i, j, idx;
++	int i, j, k, bit, idx;
+ 
++	/*
++	 * FIXME: ACR mask parsing relies on cpuc->event_list[] (active events only).
++	 * Disabling an ACR event causes bit-shifting errors in the acr_mask of
++	 * remaining group members. As ACR sampling requires all events to be active,
++	 * this limitation is acceptable for now. Revisit if independent event toggling
++	 * is required.
++	 */
+ 	for (i = 0; i < cpuc->n_events; i++) {
+ 		leader = cpuc->event_list[i];
+ 		if (!is_acr_event_group(leader))
+ 			continue;
+ 
+-		/* The ACR events must be contiguous. */
++		/* Find the last event of the ACR group. */
+ 		for (j = i; j < cpuc->n_events; j++) {
+ 			event = cpuc->event_list[j];
+ 			if (event->group_leader != leader->group_leader)
+ 				break;
+-			for_each_set_bit(idx, (unsigned long *)&event->attr.config2, X86_PMC_IDX_MAX) {
+-				if (i + idx >= cpuc->n_events ||
+-				    !is_acr_event_group(cpuc->event_list[i + idx]))
+-					return;
+-				__set_bit(cpuc->assign[i + idx], (unsigned long *)&event->hw.config1);
++		}
++
++		/*
++		 * Translate the user-space ACR mask (attr.config2) into the physical
++		 * counter bitmask (hw.config1) for each ACR event in the group.
++		 * NOTE: ACR event contiguity is guaranteed by intel_pmu_hw_config().
++		 */
++		for (k = i; k < j; k++) {
++			event = cpuc->event_list[k];
++			event->hw.config1 = 0;
++			for_each_set_bit(bit, (unsigned long *)&event->attr.config2, X86_PMC_IDX_MAX) {
++				idx = i + bit;
++				/* Event index of ACR group must locate in [i, j). */
++				if (idx >= j || !is_acr_event_group(cpuc->event_list[idx]))
++					continue;
++				__set_bit(cpuc->assign[idx], (unsigned long *)&event->hw.config1);
+ 			}
+ 		}
+ 		i = j - 1;
+-- 
+2.54.0
+
+
+From 9aae13f17285051ac84783647840c24f90124e98 Mon Sep 17 00:00:00 2001
+From: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Date: Thu, 30 Apr 2026 08:25:55 +0800
+Subject: [PATCH 18/27] perf/x86/intel: Always reprogram ACR events to prevent
+ stale masks
+
+commit 8ba0b706a485b1e607594cf4210786d517ad1611 upstream.
+
+Members of an ACR group are logically linked via a bitmask of their
+hardware counter indices. If some members of the group are assigned new
+hardware counters during rescheduling, even events that keep their
+original counter index must be updated with a new mask.
+
+Without this, an event will continue to use a stale acr_mask that
+references the old indices of its group peers. Ensure all ACR events are
+reprogrammed during the scheduling path to maintain consistency across
+the group.
+
+Fixes: ec980e4facef ("perf/x86/intel: Support auto counter reload")
+Signed-off-by: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: stable@vger.kernel.org
+Link: https://patch.msgid.link/20260430002558.712334-3-dapeng1.mi@linux.intel.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/events/core.c | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/events/core.c b/arch/x86/events/core.c
+index 810ab21ffd99..4b9e105309c6 100644
+--- a/arch/x86/events/core.c
++++ b/arch/x86/events/core.c
+@@ -1294,13 +1294,16 @@ int x86_perf_rdpmc_index(struct perf_event *event)
+ 	return event->hw.event_base_rdpmc;
+ }
+ 
+-static inline int match_prev_assignment(struct hw_perf_event *hwc,
++static inline int match_prev_assignment(struct perf_event *event,
+ 					struct cpu_hw_events *cpuc,
+ 					int i)
+ {
++	struct hw_perf_event *hwc = &event->hw;
++
+ 	return hwc->idx == cpuc->assign[i] &&
+-		hwc->last_cpu == smp_processor_id() &&
+-		hwc->last_tag == cpuc->tags[i];
++	       hwc->last_cpu == smp_processor_id() &&
++	       hwc->last_tag == cpuc->tags[i] &&
++	       !is_acr_event_group(event);
+ }
+ 
+ static void x86_pmu_start(struct perf_event *event, int flags);
+@@ -1346,7 +1349,7 @@ static void x86_pmu_enable(struct pmu *pmu)
+ 			 * - no other event has used the counter since
+ 			 */
+ 			if (hwc->idx == -1 ||
+-			    match_prev_assignment(hwc, cpuc, i))
++			    match_prev_assignment(event, cpuc, i))
+ 				continue;
+ 
+ 			/*
+@@ -1367,7 +1370,7 @@ static void x86_pmu_enable(struct pmu *pmu)
+ 			event = cpuc->event_list[i];
+ 			hwc = &event->hw;
+ 
+-			if (!match_prev_assignment(hwc, cpuc, i))
++			if (!match_prev_assignment(event, cpuc, i))
+ 				x86_assign_hw_event(event, cpuc, i);
+ 			else if (i < n_running)
+ 				continue;
+-- 
+2.54.0
+
+
+From 428754bf230d7d143c102fa1a77131e36fcc5857 Mon Sep 17 00:00:00 2001
+From: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Date: Thu, 30 Apr 2026 08:25:56 +0800
+Subject: [PATCH 19/27] perf/x86/intel: Disable PMI for self-reloaded ACR
+ events
+
+commit 1271aeccc307066315b2d3b0d5af2510e27018b5 upstream.
+
+On platforms with Auto Counter Reload (ACR) support, such as NVL, a
+"NMI received for unknown reason 30" warning is observed when running
+multiple events in a group with ACR enabled:
+
+  $ perf record -e '{instructions/period=20000,acr_mask=0x2/u,\
+    cycles/period=40000,acr_mask=0x3/u}' ./test
+
+The warning occurs because the Performance Monitoring Interrupt (PMI)
+is enabled for the self-reloaded event (the cycles event in this case).
+According to the Intel SDM, the overflow bit
+(IA32_PERF_GLOBAL_STATUS.PMCn_OVF) is never set for self-reloaded events.
+Since the bit is not set, the perf NMI handler cannot identify the source
+of the interrupt, leading to the "unknown reason" message.
+
+Furthermore, enabling PMI for self-reloaded events is unnecessary and
+can lead to extraneous records that pollute the user's requested data.
+
+Disable the interrupt bit for all events configured with ACR self-reload.
+
+Fixes: ec980e4facef ("perf/x86/intel: Support auto counter reload")
+Reported-by: Andi Kleen <ak@linux.intel.com>
+Signed-off-by: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: stable@vger.kernel.org
+Link: https://patch.msgid.link/20260430002558.712334-4-dapeng1.mi@linux.intel.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/events/intel/core.c | 17 +++++++++++++----
+ arch/x86/events/perf_event.h | 10 ++++++++++
+ 2 files changed, 23 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/events/intel/core.c b/arch/x86/events/intel/core.c
+index 42910ca36538..d097ebb7bb88 100644
+--- a/arch/x86/events/intel/core.c
++++ b/arch/x86/events/intel/core.c
+@@ -3118,11 +3118,11 @@ static void intel_pmu_enable_fixed(struct perf_event *event)
+ 	intel_set_masks(event, idx);
+ 
+ 	/*
+-	 * Enable IRQ generation (0x8), if not PEBS,
+-	 * and enable ring-3 counting (0x2) and ring-0 counting (0x1)
+-	 * if requested:
++	 * Enable IRQ generation (0x8), if not PEBS or self-reloaded
++	 * ACR event, and enable ring-3 counting (0x2) and ring-0
++	 * counting (0x1) if requested:
+ 	 */
+-	if (!event->attr.precise_ip)
++	if (!event->attr.precise_ip && !is_acr_self_reload_event(event))
+ 		bits |= INTEL_FIXED_0_ENABLE_PMI;
+ 	if (hwc->config & ARCH_PERFMON_EVENTSEL_USR)
+ 		bits |= INTEL_FIXED_0_USER;
+@@ -3306,6 +3306,15 @@ static void intel_pmu_enable_event(struct perf_event *event)
+ 		intel_set_masks(event, idx);
+ 		static_call_cond(intel_pmu_enable_acr_event)(event);
+ 		static_call_cond(intel_pmu_enable_event_ext)(event);
++		/*
++		 * For self-reloaded ACR event, don't enable PMI since
++		 * HW won't set overflow bit in GLOBAL_STATUS. Otherwise,
++		 * the PMI would be recognized as a suspicious NMI.
++		 */
++		if (is_acr_self_reload_event(event))
++			hwc->config &= ~ARCH_PERFMON_EVENTSEL_INT;
++		else if (!event->attr.precise_ip)
++			hwc->config |= ARCH_PERFMON_EVENTSEL_INT;
+ 		__x86_pmu_enable_event(hwc, enable_mask);
+ 		break;
+ 	case INTEL_PMC_IDX_FIXED ... INTEL_PMC_IDX_FIXED_BTS - 1:
+diff --git a/arch/x86/events/perf_event.h b/arch/x86/events/perf_event.h
+index fad87d3c8b2c..524668dcf4cc 100644
+--- a/arch/x86/events/perf_event.h
++++ b/arch/x86/events/perf_event.h
+@@ -137,6 +137,16 @@ static inline bool is_acr_event_group(struct perf_event *event)
+ 	return check_leader_group(event->group_leader, PERF_X86_EVENT_ACR);
+ }
+ 
++static inline bool is_acr_self_reload_event(struct perf_event *event)
++{
++	struct hw_perf_event *hwc = &event->hw;
++
++	if (hwc->idx < 0)
++		return false;
++
++	return test_bit(hwc->idx, (unsigned long *)&hwc->config1);
++}
++
+ struct amd_nb {
+ 	int nb_id;  /* NorthBridge id */
+ 	int refcnt; /* reference count */
+-- 
+2.54.0
+
+
+From 2144f4ac2bbad2cab49f9fc9948fe6c945de8249 Mon Sep 17 00:00:00 2001
+From: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Date: Thu, 30 Apr 2026 08:25:57 +0800
+Subject: [PATCH 20/27] perf/x86/intel: Enable auto counter reload for DMR
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+commit aa4384bc8f4360167f3c3d5322121fe892289ea2 upstream.
+
+Panther cove µarch starts to support auto counter reload (ACR), but the
+static_call intel_pmu_enable_acr_event() is not updated for the Panther
+Cove µarch used by DMR. It leads to the auto counter reload is not
+really enabled on DMR.
+
+Update static_call intel_pmu_enable_acr_event() in intel_pmu_init_pnc().
+
+Fixes: d345b6bb8860 ("perf/x86/intel: Add core PMU support for DMR")
+Signed-off-by: Dapeng Mi <dapeng1.mi@linux.intel.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: stable@vger.kernel.org
+Link: https://patch.msgid.link/20260430002558.712334-5-dapeng1.mi@linux.intel.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/events/intel/core.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/x86/events/intel/core.c b/arch/x86/events/intel/core.c
+index d097ebb7bb88..d8ac015f5fdb 100644
+--- a/arch/x86/events/intel/core.c
++++ b/arch/x86/events/intel/core.c
+@@ -7525,6 +7525,7 @@ static __always_inline void intel_pmu_init_pnc(struct pmu *pmu)
+ 	hybrid(pmu, event_constraints) = intel_pnc_event_constraints;
+ 	hybrid(pmu, pebs_constraints) = intel_pnc_pebs_event_constraints;
+ 	hybrid(pmu, extra_regs) = intel_pnc_extra_regs;
++	static_call_update(intel_pmu_enable_acr_event, intel_pmu_enable_acr);
+ }
+ 
+ static __always_inline void intel_pmu_init_skt(struct pmu *pmu)
+-- 
+2.54.0
+
+
+From da53ecf87689c9f121c3d7e9462e95ce886c860a Mon Sep 17 00:00:00 2001
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Wed, 13 May 2026 11:37:18 -0700
+Subject: [PATCH 21/27] ptrace: slightly saner 'get_dumpable()' logic
+
+commit 31e62c2ebbfdc3fe3dbdf5e02c92a9dc67087a3a upstream.
+
+The 'dumpability' of a task is fundamentally about the memory image of
+the task - the concept comes from whether it can core dump or not - and
+makes no sense when you don't have an associated mm.
+
+And almost all users do in fact use it only for the case where the task
+has a mm pointer.
+
+But we have one odd special case: ptrace_may_access() uses 'dumpable' to
+check various other things entirely independently of the MM (typically
+explicitly using flags like PTRACE_MODE_READ_FSCREDS).  Including for
+threads that no longer have a VM (and maybe never did, like most kernel
+threads).
+
+It's not what this flag was designed for, but it is what it is.
+
+The ptrace code does check that the uid/gid matches, so you do have to
+be uid-0 to see kernel thread details, but this means that the
+traditional "drop capabilities" model doesn't make any difference for
+this all.
+
+Make it all make a *bit* more sense by saying that if you don't have a
+MM pointer, we'll use a cached "last dumpability" flag if the thread
+ever had a MM (it will be zero for kernel threads since it is never
+set), and require a proper CAP_SYS_PTRACE capability to override.
+
+Reported-by: Qualys Security Advisory <qsa@qualys.com>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Kees Cook <kees@kernel.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ include/linux/sched.h |  3 +++
+ kernel/exit.c         |  1 +
+ kernel/ptrace.c       | 22 ++++++++++++++++------
+ 3 files changed, 20 insertions(+), 6 deletions(-)
+
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 5a5d3dbc9cdf..9d4fb641a6c1 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -998,6 +998,9 @@ struct task_struct {
+ 	unsigned			sched_rt_mutex:1;
+ #endif
+ 
++	/* Save user-dumpable when mm goes away */
++	unsigned			user_dumpable:1;
++
+ 	/* Bit to tell TOMOYO we're in execve(): */
+ 	unsigned			in_execve:1;
+ 	unsigned			in_iowait:1;
+diff --git a/kernel/exit.c b/kernel/exit.c
+index ede3117fa7d4..bbb44fd3ffba 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -571,6 +571,7 @@ static void exit_mm(void)
+ 	 */
+ 	smp_mb__after_spinlock();
+ 	local_irq_disable();
++	current->user_dumpable = (get_dumpable(mm) == SUID_DUMP_USER);
+ 	current->mm = NULL;
+ 	membarrier_update_current_mm(NULL);
+ 	enter_lazy_tlb(mm, current);
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 392ec2f75f01..0e3ab697cff5 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -272,11 +272,24 @@ static bool ptrace_has_cap(struct user_namespace *ns, unsigned int mode)
+ 	return ns_capable(ns, CAP_SYS_PTRACE);
+ }
+ 
++static bool task_still_dumpable(struct task_struct *task, unsigned int mode)
++{
++	struct mm_struct *mm = task->mm;
++	if (mm) {
++		if (get_dumpable(mm) == SUID_DUMP_USER)
++			return true;
++		return ptrace_has_cap(mm->user_ns, mode);
++	}
++
++	if (task->user_dumpable)
++		return true;
++	return ptrace_has_cap(&init_user_ns, mode);
++}
++
+ /* Returns 0 on success, -errno on denial. */
+ static int __ptrace_may_access(struct task_struct *task, unsigned int mode)
+ {
+ 	const struct cred *cred = current_cred(), *tcred;
+-	struct mm_struct *mm;
+ 	kuid_t caller_uid;
+ 	kgid_t caller_gid;
+ 
+@@ -337,11 +350,8 @@ static int __ptrace_may_access(struct task_struct *task, unsigned int mode)
+ 	 * Pairs with a write barrier in commit_creds().
+ 	 */
+ 	smp_rmb();
+-	mm = task->mm;
+-	if (mm &&
+-	    ((get_dumpable(mm) != SUID_DUMP_USER) &&
+-	     !ptrace_has_cap(mm->user_ns, mode)))
+-	    return -EPERM;
++	if (!task_still_dumpable(task, mode))
++		return -EPERM;
+ 
+ 	return security_ptrace_access_check(task, mode);
+ }
+-- 
+2.54.0
+
+
+From 0e7010cd354c669bc03f0dc5c55c64dcadbfe0c7 Mon Sep 17 00:00:00 2001
 From: William Bowling <vakzz@zellic.io>
 Date: Wed, 13 May 2026 04:16:35 +0000
-Subject: [PATCH 15/19] net: skbuff: preserve shared-frag marker during
+Subject: [PATCH 22/27] net: skbuff: preserve shared-frag marker during
  coalescing
 
 skb_try_coalesce() can attach paged frags from @from to @to.  If @from
@@ -1368,6 +1979,8 @@ Fixes: f4c50a4034e6 ("xfrm: esp: avoid in-place decrypt on shared skb frags")
 Signed-off-by: William Bowling <vakzz@zellic.io>
 Reviewed-by: Eric Dumazet <edumazet@google.com>
 Tested-by: Jiayuan Chen <jiayuan.chen@linux.dev>
+Link: https://patch.msgid.link/20260513041635.1289541-1-vakzz@zellic.io
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
 ---
  net/core/skbuff.c | 2 ++
  1 file changed, 2 insertions(+)
@@ -1389,10 +2002,135 @@ index 43ee86dcf2ea..37471c1065a2 100644
 2.54.0
 
 
-From 9b0bb2a1adbb7dda2734234056f11cd78548e317 Mon Sep 17 00:00:00 2001
+From ae65197488df62e86a993d2a9562802f009a0e0d Mon Sep 17 00:00:00 2001
+From: Hyunwoo Kim <imv4bel@gmail.com>
+Date: Fri, 15 May 2026 14:55:35 +0900
+Subject: [PATCH 23/27] net: skbuff: propagate shared-frag marker through
+ frag-transfer helpers
+
+Two frag-transfer helpers (__pskb_copy_fclone() and skb_shift()) fail
+to propagate the SKBFL_SHARED_FRAG bit in skb_shinfo()->flags when
+moving frags from source to destination.  __pskb_copy_fclone() defers
+the rest of the shinfo metadata to skb_copy_header() after copying
+frag descriptors, but that helper only carries over gso_{size,segs,
+type} and never touches skb_shinfo()->flags; skb_shift() moves frag
+descriptors directly and leaves flags untouched.  As a result, the
+destination skb keeps a reference to the same externally-owned or
+page-cache-backed pages while reporting skb_has_shared_frag() as
+false.
+
+The mismatch is harmful in any in-place writer that uses
+skb_has_shared_frag() to decide whether shared pages must be detoured
+through skb_cow_data().  ESP input is one such writer (esp4.c,
+esp6.c), and a single nft 'dup to <local>' rule -- or any other
+nf_dup_ipv4() / xt_TEE caller -- is enough to land a pskb_copy()'d
+skb in esp_input() with the marker stripped, letting an unprivileged
+user write into the page cache of a root-owned read-only file via
+authencesn-ESN stray writes.
+
+Set SKBFL_SHARED_FRAG on the destination whenever frag descriptors
+were actually moved from the source.  skb_copy() and skb_copy_expand()
+share skb_copy_header() too but linearize all paged data into freshly
+allocated head storage and emerge with nr_frags == 0, so
+skb_has_shared_frag() returns false on its own; they need no change.
+
+The same omission exists in skb_gro_receive() and skb_gro_receive_list().
+The former moves the incoming skb's frag descriptors into the
+accumulator's last sub-skb via two paths (a direct frag-move loop and
+the head_frag + memcpy path); the latter chains the incoming skb whole
+onto p's frag_list.  Downstream skb_segment() reads only
+skb_shinfo(p)->flags, and skb_segment_list() reuses each sub-skb's
+shinfo as the nskb -- both p and lp must carry the marker.
+
+The same omission also exists in tcp_clone_payload(), which builds an
+MTU probe skb by moving frag descriptors from skbs on sk_write_queue
+into a freshly allocated nskb.  The helper falls into the same family
+and warrants the same fix for consistency; no TCP TX-side in-place
+writer is currently known to reach a user page through this gap, but
+a future consumer depending on the marker would regress silently.
+
+Fixes: cef401de7be8 ("net: fix possible wrong checksum generation")
+Fixes: f4c50a4034e6 ("xfrm: esp: avoid in-place decrypt on shared skb frags")
+Suggested-by: Sabrina Dubroca <sd@queasysnail.net>
+Suggested-by: Sultan Alsawaf <sultan@kerneltoast.com>
+Suggested-by: Ben Hutchings <ben@decadent.org.uk>
+Suggested-by: Lin Ma <malin89@huawei.com>
+Suggested-by: Jingguo Tan <tanjingguo@huawei.com>
+Cc: stable@vger.kernel.org
+Signed-off-by: Hyunwoo Kim <imv4bel@gmail.com>
+---
+ net/core/gro.c        | 4 ++++
+ net/core/skbuff.c     | 3 +++
+ net/ipv4/tcp_output.c | 1 +
+ 3 files changed, 8 insertions(+)
+
+diff --git a/net/core/gro.c b/net/core/gro.c
+index 31d21de5b15a..9f8960789b2c 100644
+--- a/net/core/gro.c
++++ b/net/core/gro.c
+@@ -213,10 +213,12 @@ int skb_gro_receive(struct sk_buff *p, struct sk_buff *skb)
+ 	p->data_len += len;
+ 	p->truesize += delta_truesize;
+ 	p->len += len;
++	skb_shinfo(p)->flags |= skbinfo->flags & SKBFL_SHARED_FRAG;
+ 	if (lp != p) {
+ 		lp->data_len += len;
+ 		lp->truesize += delta_truesize;
+ 		lp->len += len;
++		skb_shinfo(lp)->flags |= skbinfo->flags & SKBFL_SHARED_FRAG;
+ 	}
+ 	NAPI_GRO_CB(skb)->same_flow = 1;
+ 	return 0;
+@@ -244,6 +246,8 @@ int skb_gro_receive_list(struct sk_buff *p, struct sk_buff *skb)
+ 	p->truesize += skb->truesize;
+ 	p->len += skb->len;
+ 
++	skb_shinfo(p)->flags |= skb_shinfo(skb)->flags & SKBFL_SHARED_FRAG;
++
+ 	NAPI_GRO_CB(skb)->same_flow = 1;
+ 
+ 	return 0;
+diff --git a/net/core/skbuff.c b/net/core/skbuff.c
+index 37471c1065a2..4cfb4886e1b2 100644
+--- a/net/core/skbuff.c
++++ b/net/core/skbuff.c
+@@ -2258,6 +2258,7 @@ struct sk_buff *__pskb_copy_fclone(struct sk_buff *skb, int headroom,
+ 			skb_frag_ref(skb, i);
+ 		}
+ 		skb_shinfo(n)->nr_frags = i;
++		skb_shinfo(n)->flags |= skb_shinfo(skb)->flags & SKBFL_SHARED_FRAG;
+ 	}
+ 
+ 	if (skb_has_frag_list(skb)) {
+@@ -4373,6 +4374,8 @@ int skb_shift(struct sk_buff *tgt, struct sk_buff *skb, int shiftlen)
+ 	tgt->ip_summed = CHECKSUM_PARTIAL;
+ 	skb->ip_summed = CHECKSUM_PARTIAL;
+ 
++	skb_shinfo(tgt)->flags |= skb_shinfo(skb)->flags & SKBFL_SHARED_FRAG;
++
+ 	skb_len_add(skb, -shiftlen);
+ 	skb_len_add(tgt, shiftlen);
+ 
+diff --git a/net/ipv4/tcp_output.c b/net/ipv4/tcp_output.c
+index 781dc6245f8e..8e6fc43ef74b 100644
+--- a/net/ipv4/tcp_output.c
++++ b/net/ipv4/tcp_output.c
+@@ -2650,6 +2650,7 @@ static int tcp_clone_payload(struct sock *sk, struct sk_buff *to,
+ 			todo = min_t(int, skb_frag_size(fragfrom),
+ 				     probe_size - len);
+ 			len += todo;
++			skb_shinfo(to)->flags |= skb_shinfo(skb)->flags & SKBFL_SHARED_FRAG;
+ 			if (lastfrag &&
+ 			    skb_frag_page(fragfrom) == skb_frag_page(lastfrag) &&
+ 			    skb_frag_off(fragfrom) == skb_frag_off(lastfrag) +
+-- 
+2.54.0
+
+
+From f89f4ecf39afdd27bd0cf735f7a913c3d5c7b67d Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Sat, 7 Mar 2026 00:10:36 +0800
-Subject: [PATCH 16/19] security/yama: Leave ptrace access unrestricted by
+Subject: [PATCH 24/27] security/yama: Leave ptrace access unrestricted by
  default
 
 Some game anti-cheats need this in order to work.
@@ -1417,10 +2155,10 @@ index cef3776cf3b2..1da4f6602ba1 100644
 2.54.0
 
 
-From 276fdc268aa40f81412c6a32c576f3bb54e281b8 Mon Sep 17 00:00:00 2001
+From 263f6829537eb293584ffbc3611cfa138f544ba3 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Sat, 7 Mar 2026 00:09:28 +0800
-Subject: [PATCH 17/19] treewide: Additional hardening configs
+Subject: [PATCH 25/27] treewide: Additional hardening configs
 
 ---
  Documentation/admin-guide/sysctl/kernel.rst |  2 ++
@@ -1735,10 +2473,10 @@ index f59228c1a39e..d687678a45ea 100644
 2.54.0
 
 
-From 9089f015bd370ae19e21f7ba23beb88ee5833eb0 Mon Sep 17 00:00:00 2001
+From 6b26e9403f3c6edd652063bd85c7143b34a7f4b2 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Tue, 5 May 2026 22:43:04 +0800
-Subject: [PATCH 18/19] fs/f2fs: Update to f2fs-for-7.1-rc1
+Subject: [PATCH 26/27] fs/f2fs: Update to f2fs-for-7.1-rc1
 
 ---
  Documentation/ABI/testing/sysfs-fs-f2fs |   6 ++
@@ -3054,10 +3792,10 @@ index 9364e6775562..ff4a58c2cbbb 100644
 2.54.0
 
 
-From a2437d3ca1f28914cfe890f17ba93d3e20f447d2 Mon Sep 17 00:00:00 2001
+From 776607ef95de991cea253bd1931879ce58d02554 Mon Sep 17 00:00:00 2001
 From: Albert I <kras@raphielgang.org>
 Date: Tue, 5 May 2026 22:48:51 +0800
-Subject: [PATCH 19/19] fs/exfat: Update to exfat-for-7.1-rc1
+Subject: [PATCH 27/27] fs/exfat: Update to exfat-for-7.1-rc1
 
 ---
  fs/exfat/balloc.c    |  18 ++---

@@ -29,7 +29,6 @@ CONFIG_MODULE_SIG_FORCE=y
 # features that may be desired for average desktop users, or cause unacceptable
 # issues or performance slowdowns (since hardening isn't without penalties)
 #
-# CONFIG_BINFMT_MISC is not set
 # CONFIG_COMPAT_BRK is not set
 # CONFIG_COMPAT_VDSO is not set
 # CONFIG_CMDLINE_OVERRIDE is not set
@@ -135,6 +134,13 @@ CONFIG_ZERO_CALL_USED_REGS=y
 CONFIG_LOCK_DOWN_KERNEL_FORCE_INTEGRITY=y
 CONFIG_SECURITY_LOCKDOWN_LSM=y
 CONFIG_SECURITY_LOCKDOWN_LSM_EARLY=y
+
+#
+# KSPP recommends turning off BINFMT_MISC because userspace can easily
+# misconfigure it; keep it around but as module like any other major distros do
+# (apart from Android) because valid usecases remain exist
+#
+CONFIG_BINFMT_MISC=m
 
 #
 # The following hardening config entries require out-of-tree kernel patches.
